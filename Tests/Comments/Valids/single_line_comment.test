@@ -1,0 +1,5 @@
+// Je suis un commentaire a une ligne
+puts("Ocaml c'est cool\n") // Je suis troisieme commentaire a une ligne
+// Je suis second un commentaire a une ligne
+
+// Spim Output : Ocaml c'est cool

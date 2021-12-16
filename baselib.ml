@@ -1,4 +1,4 @@
-open Ast.Base_Value
+open Ast
 open Mips
 module Env = Map.Make (String)
 
@@ -7,6 +7,9 @@ let def_t =
   ; "puts", Func_t (Void_t, [ Str_t ])
   ; "_plus_", Func_t (Int_t, [ Int_t; Int_t ])
   ; "puti", Func_t (Void_t, [ Int_t ])
+  ; "_sous_", Func_t (Int_t, [ Int_t; Int_t ])
+  ; "_div_", Func_t (Int_t, [ Int_t; Int_t ])
+  ; "_mod_", Func_t (Int_t, [ Int_t; Int_t ])
   ]
 ;;
 
@@ -17,21 +20,36 @@ let builtins =
   ; Lw (Reg A0, Mem (SP, 0))
   ; Li (Reg V0, Syscall.print_str)
   ; Syscall
-  ; Jr (Reg RA)
+  ; Jr RA
   ; Jump_Lbl "_plus_"
   ; Lw (Reg T0, Mem (SP, 0))
   ; Lw (Reg T1, Mem (SP, 4))
-  ; Add (V0, T0, T1)
-  ; Jr (Reg RA)
+  ; Add (V0, T1, T0)
+  ; Jr RA
+  ; Jump_Lbl "_sous_"
+  ; Lw (Reg T0, Mem (SP, 0))
+  ; Lw (Reg T1, Mem (SP, 4))
+  ; Sub (V0, T1, T0)
+  ; Jr RA
   ; Jump_Lbl "_mult_"
   ; Lw (Reg T0, Mem (SP, 0))
   ; Lw (Reg T1, Mem (SP, 4))
   ; Mul (V0, T0, T1)
-  ; Jr (Reg RA)
+  ; Jr RA
   ; Jump_Lbl "puti"
   ; Lw (Reg A0, Mem (SP, 0))
   ; Li (Reg V0, Syscall.print_int)
   ; Syscall
-  ; Jr (Reg RA)
+  ; Jr RA
+  ; Jump_Lbl "_div_"
+  ; Lw (Reg T0, Mem (SP, 0))
+  ; Lw (Reg T1, Mem (SP, 4))
+  ; Div (V0, T1, T0)
+  ; Jr RA
+  ; Jump_Lbl "_mod_"
+  ; Lw (Reg T0, Mem (SP, 0))
+  ; Lw (Reg T1, Mem (SP, 4))
+  ; Rem (V0, T1, T0)
+  ; Jr RA
   ]
 ;;

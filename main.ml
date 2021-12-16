@@ -36,4 +36,5 @@ let () =
   | Lexer.ComEndError -> err (Printf.sprintf "Close Comment") (Lexing.lexeme_start_p buf)
   | Parser.Error -> err "syntax error" (Lexing.lexeme_start_p buf)
   | Semantics.Error (msg, pos) -> err msg pos
+  | Ast.Error (msg, pos) -> err msg pos
 ;;

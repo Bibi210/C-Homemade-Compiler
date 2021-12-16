@@ -1,0 +1,14 @@
+int a,b = 10,c = a = b + 10;
+puts("a = ");
+puti(a);
+puts("\n");
+puts("b = ");
+puti(b);
+puts("\n");
+puts("c = ");
+puti(c);
+puts("\n");
+
+
+
+// Spim Output : 210

@@ -77,8 +77,8 @@ let rec analyze_expr expr env =
                 raise
                   (Error
                      ( Printf.sprintf
-                         "Function %s arguement number %d has wrong type Expected : ( %s ) \
-                          Given : ( %s )"
+                         "Function %s arguement number %d has wrong type Expected : ( %s \
+                          ) Given : ( %s )"
                          called_func.name
                          !_counter
                          (fmt_type b)
@@ -92,14 +92,67 @@ let rec analyze_expr expr env =
   | Syntax.Var var ->
     (match Env.find_opt var.name env with
     | None ->
-      raise (Error (Printf.sprintf "The Variable: ( %s ) is not defined" var.name, var.pos))
+      raise
+        (Error (Printf.sprintf "The Variable: ( %s ) is not defined" var.name, var.pos))
     | Some (Func_t _) ->
-      raise (Error (Printf.sprintf "%s is not a Variable its a Function" var.name, var.pos))
+      raise
+        (Error (Printf.sprintf "%s is not a Variable its a Function" var.name, var.pos))
     | Some var_type -> { expr = Var var.name; base_type = var_type })
+  | Syntax.Assign assign ->
+    (match Env.find_opt assign.var_name env with
+    | None ->
+      raise
+        (Error
+           (Printf.sprintf "The ( %s ) Variable dont exist" assign.var_name, assign.pos))
+    | Some x ->
+      let expr_result = analyze_expr assign.expr env in
+      if expr_result.base_type == x
+      then
+        { expr = Assign (assign.var_name, expr_result.expr)
+        ; base_type = expr_result.base_type
+        }
+      else
+        raise
+          (Error
+             ( Printf.sprintf
+                 "Wrong type assign Variable ( %s ) Expected ( %s ) Given ( %s ) "
+                 assign.var_name
+                 (fmt_type x)
+                 (fmt_type expr_result.base_type)
+             , assign.pos )))
 ;;
 
-let throw_type = function
-  | x -> x.expr
+let rec analyze_instr intr env =
+  match intr with
+  | Syntax.Expr x ->
+    let expr_type = analyze_expr x env in
+    Expr expr_type.expr, env
+  | Syntax.Decl var ->
+    ( Decl var.var_name
+    , (match Env.find_opt var.var_name env with
+      | None -> Env.add var.var_name var.var_type env
+      | Some _ ->
+        raise
+          (Error
+             (Printf.sprintf "Variable ( %s ) is already defined" var.var_name, var.pos)))
+    )
+  | Syntax.While syntax_while ->
+    let expr_type = analyze_expr syntax_while.cond env in
+    While (expr_type.expr, analyze_block syntax_while.block env), env
+  | Syntax.If syntax_if ->
+    let expr_type = analyze_expr syntax_if.cond env in
+    ( If
+        ( expr_type.expr
+        , analyze_block syntax_if.block_true env
+        , analyze_block syntax_if.block_false env )
+    , env )
+
+and analyze_block block env =
+  match block with
+  | [] -> []
+  | hd :: tail ->
+    let analyzed_instr, updated_env = analyze_instr hd env in
+    analyzed_instr :: analyze_block tail updated_env
 ;;
 
-let analyze parsed = throw_type (analyze_expr parsed Baselib._types_)
+let analyze parsed = analyze_block parsed Baselib._types_

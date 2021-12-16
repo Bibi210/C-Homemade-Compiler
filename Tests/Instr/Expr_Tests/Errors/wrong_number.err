@@ -1,0 +1,2 @@
+puts(10,57);
+// Error Output : Argument Number 0 has wrong argument number Expected : (1) Given: (2).

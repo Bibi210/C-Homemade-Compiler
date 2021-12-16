@@ -1,0 +1,3 @@
+undef a = 10;
+
+// Error Output : Syntax error

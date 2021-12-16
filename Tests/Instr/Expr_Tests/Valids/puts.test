@@ -1,0 +1,2 @@
+puts("Ocaml c'est cool\n");
+// Spim Output : Ocaml c'est cool\n

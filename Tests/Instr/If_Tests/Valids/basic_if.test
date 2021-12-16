@@ -1,0 +1,36 @@
+{
+  int a = 20;
+  while (a) {
+    if (a % 2)
+      puts("A est impair car ");
+    else
+      puts("A est pair car ");
+    puts("A = ");
+    puti(a);
+    puts("\n");
+    a = a - 1;
+  }
+}
+
+/* Spim Output :
+A est pair car A = 20
+A est impair car A = 19
+A est pair car A = 18
+A est impair car A = 17
+A est pair car A = 16
+A est impair car A = 15
+A est pair car A = 14
+A est impair car A = 13
+A est pair car A = 12
+A est impair car A = 11
+A est pair car A = 10
+A est impair car A = 9
+A est pair car A = 8
+A est impair car A = 7
+A est pair car A = 6
+A est impair car A = 5
+A est pair car A = 4
+A est impair car A = 3
+A est pair car A = 2
+A est impair car A = 1
+*/

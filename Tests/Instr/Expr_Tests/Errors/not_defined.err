@@ -1,0 +1,2 @@
+undef(10);
+// Error Output : undef is not defined

@@ -1,0 +1,3 @@
+puts(10);
+
+// Error Output : Argument Number 0 has wrong type Expected : (Str) Given: (Int).

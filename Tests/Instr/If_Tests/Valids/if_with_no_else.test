@@ -1,0 +1,23 @@
+{
+  int a = 20;
+  while (a) {
+    if (a % 2) {
+      puts("A est impair car ");
+      puts("A = ");
+      puti(a);
+      puts("\n");
+    }
+    a = a - 1;
+  }
+}
+// Spim Output :
+/*A est impair car A = 19
+A est impair car A = 17
+A est impair car A = 15
+A est impair car A = 13
+A est impair car A = 11
+A est impair car A = 9
+A est impair car A = 7
+A est impair car A = 5
+A est impair car A = 3
+A est impair car A = 1*/

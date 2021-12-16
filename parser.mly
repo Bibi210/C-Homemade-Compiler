@@ -50,11 +50,15 @@ instr:
 | decl_ls = flatten(decl);Lsc{
   decl_ls
 }
-|Lwhile ; Lopar;cond = expr;Lcpar ; to_exec = block{
+|Lwhile ; cond = expr; to_exec = block{
   [While {cond = cond;pos = $startpos($1);block = to_exec}]
 }
-|Lif ; Lopar;cond = expr;Lcpar;block_true = block;Lelse;block_false = block{
-  [If {cond = cond;pos = $startpos($1);block_true = block_true;block_false = block_false }]
+|Lif ; cond = expr; block_true = block;opt_else = option(pair(Lelse,block)){
+  [If {cond = cond;pos = $startpos($1);block_true = block_true
+  ; block_false = (match opt_else with 
+  | None -> []
+  | Some(_,b) -> b)
+  }]
 }
 ;
 

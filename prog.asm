@@ -30,17 +30,8 @@ while0:
   sw $v0, 0($sp)
   jal puts
   addi $sp, $sp, 4
-  j end_if1
-else1:
 # Start of Instr : Call of puts( Str Label str_1 )
   la $v0, str_1
-  addi $sp, $sp, -4
-  sw $v0, 0($sp)
-  jal puts
-  addi $sp, $sp, 4
-end_if1:
-# Start of Instr : Call of puts( Str Label str_2 )
-  la $v0, str_2
   addi $sp, $sp, -4
   sw $v0, 0($sp)
   jal puts
@@ -51,12 +42,15 @@ end_if1:
   sw $v0, 0($sp)
   jal puti
   addi $sp, $sp, 4
-# Start of Instr : Call of puts( Str Label str_3 )
-  la $v0, str_3
+# Start of Instr : Call of puts( Str Label str_2 )
+  la $v0, str_2
   addi $sp, $sp, -4
   sw $v0, 0($sp)
   jal puts
   addi $sp, $sp, 4
+  j end_if1
+else1:
+end_if1:
 # Start of Instr : Variable : a = Call of _sous_( Variable a 1 )
   lw $v0 0($fp)
   addi $sp, $sp, -4
@@ -110,8 +104,7 @@ _mod_:
   jr $ra
 
 .data
-str_3: .asciiz "
+str_2: .asciiz "
 "
-str_2: .asciiz "A = "
+str_1: .asciiz "A = "
 str_0: .asciiz "A est impair car "
-str_1: .asciiz "A est pair car "

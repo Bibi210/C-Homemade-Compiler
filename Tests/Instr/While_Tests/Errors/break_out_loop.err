@@ -1,0 +1,6 @@
+{
+    if (true)
+        break;
+}
+
+// Error output : Error line 3 col 8: This Break is outside of any loop.

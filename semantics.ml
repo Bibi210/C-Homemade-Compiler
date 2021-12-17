@@ -122,7 +122,7 @@ let rec analyze_expr expr env =
              , assign.pos )))
 ;;
 
-let rec analyze_instr intr env =
+let rec analyze_instr intr env is_loop =
   match intr with
   | Syntax.Expr x ->
     let expr_type = analyze_expr x env in
@@ -138,21 +138,32 @@ let rec analyze_instr intr env =
     )
   | Syntax.While syntax_while ->
     let expr_type = analyze_expr syntax_while.cond env in
-    While (expr_type.expr, analyze_block syntax_while.block env), env
+    ( While
+        (expr_type.expr, analyze_block syntax_while.block env true, syntax_while.do_mode)
+    , env )
   | Syntax.If syntax_if ->
     let expr_type = analyze_expr syntax_if.cond env in
     ( If
         ( expr_type.expr
-        , analyze_block syntax_if.block_true env
-        , analyze_block syntax_if.block_false env )
+        , analyze_block syntax_if.block_true env is_loop
+        , analyze_block syntax_if.block_false env is_loop )
     , env )
+  | Syntax.Break pos ->
+    if is_loop
+    then Break, env
+    else raise (Error ("This Break is outside of any loop", pos))
+  | Syntax.Continue pos ->
+    if is_loop
+    then Continue, env
+    else raise (Error ("This Continue is outside of any loop", pos))
+  | Syntax.NestedBlock block -> NestedBlock (analyze_block block env is_loop), env
 
-and analyze_block block env =
+and analyze_block block env is_loop =
   match block with
   | [] -> []
   | hd :: tail ->
-    let analyzed_instr, updated_env = analyze_instr hd env in
-    analyzed_instr :: analyze_block tail updated_env
+    let analyzed_instr, updated_env = analyze_instr hd env is_loop in
+    analyzed_instr :: analyze_block tail updated_env is_loop
 ;;
 
-let analyze parsed = analyze_block parsed Baselib._types_
+let analyze parsed = analyze_block parsed Baselib._types_ false

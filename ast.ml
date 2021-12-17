@@ -40,8 +40,11 @@ module IR (P : Parameters) = struct
   type instr =
     | Expr of expr
     | Decl of ident
-    | While of expr * block
+    | While of expr * block * bool
     | If of expr * block * block
+    | Break
+    | Continue
+    | NestedBlock of block
 
   and block = instr list
 end
@@ -80,6 +83,7 @@ module Syntax = struct
     | While of
         { cond : expr
         ; block : block
+        ; do_mode : bool
         ; pos : Lexing.position
         }
     | If of
@@ -88,6 +92,9 @@ module Syntax = struct
         ; block_false : block
         ; pos : Lexing.position
         }
+    | Break of Lexing.position
+    | Continue of Lexing.position
+    | NestedBlock of block
 
   and block = instr list
 end

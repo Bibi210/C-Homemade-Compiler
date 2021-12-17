@@ -10,7 +10,7 @@
 %token Ldef_int Ldef_bool Ldef_string
 %token <string> Lident
 
-%token Lwhile Lif Lelse
+%token Lwhile Lfor Lif Lelse Ldo Lbreak Lcontinue
 
 %token Lend Lvirgule Lopar Lcpar Lsc Lobra_curl Lcbra_curl
 
@@ -37,9 +37,6 @@ prog:
 block:
 |Lobra_curl; instr_ls = list(instr) ; Lcbra_curl{
   List.flatten instr_ls
-}
-| ist = instr{ (*Provoque Grammaire ambigue pk ?*)
-  ist
 };
 
 instr:
@@ -50,15 +47,27 @@ instr:
 | decl_ls = flatten(decl);Lsc{
   decl_ls
 }
-|Lwhile ; cond = expr; to_exec = block{
-  [While {cond = cond;pos = $startpos($1);block = to_exec}]
+|Lwhile ; cond = expr; to_exec = instr{
+  [While {cond = cond;pos = $startpos($1);block = to_exec;do_mode = false;}]
 }
-|Lif ; cond = expr; block_true = block;opt_else = option(pair(Lelse,block)){
+|Ldo;to_exec = instr;Lwhile;cond = expr;Lsc{
+  [While {cond = cond;pos = $startpos($1);block = to_exec;do_mode = true;}]
+}
+|Lbreak{
+  [Break $startpos($1)]
+}
+|Lcontinue{
+  [Continue $startpos($1)]
+}
+|Lif ; cond = expr; block_true = instr;opt_else = option(pair(Lelse,instr)){
   [If {cond = cond;pos = $startpos($1);block_true = block_true
   ; block_false = (match opt_else with 
   | None -> []
   | Some(_,b) -> b)
   }]
+}
+|nested_block = block{
+  [NestedBlock nested_block]
 }
 ;
 

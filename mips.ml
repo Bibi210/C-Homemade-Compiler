@@ -96,8 +96,8 @@ let fmt_instr mips_instr =
     | Bne (left, right, label) ->
       ps "  bne %s, %s, %s," (fmt_reg left) (fmt_reg right) label
     | J lbl -> ps "  j %s" lbl
-    | Div (result, a, b) -> ps " div %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
-    | Rem (result, a, b) -> ps " rem %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
+    | Div (result, a, b) -> ps "  div %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
+    | Rem (result, a, b) -> ps "  rem %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
     | Coms com -> if not (String.equal "None" com) then ps "# %s\n" com else ""
   in
   match mips_instr with

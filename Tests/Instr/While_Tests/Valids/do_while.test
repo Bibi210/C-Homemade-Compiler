@@ -1,0 +1,10 @@
+{
+    int a = 0;
+    do{
+        puts("A = ");
+        puti(a);
+        puts("\n");
+    }while a;
+}
+
+// Spim Output : A = 0

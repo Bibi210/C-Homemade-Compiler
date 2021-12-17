@@ -7,28 +7,62 @@ main:
   move $fp, $sp
 # Start of Instr : Stack Space Reserved for Var (a) at -FP(0)
   addi $sp, $sp, -4
-# Start of Instr : Variable : a = 20
-  li $v0, 20
+# Start of Instr : Variable : a = 1000
+  li $v0, 1000
+  sw $v0, 0($fp)
+# Start of Instr : Stack Space Reserved for Var (a) at -FP(0)
+  addi $sp, $sp, -4
+# Start of Instr : Variable : a = 1000
+  li $v0, 1000
   sw $v0, 0($fp)
 # Start of Instr : While 0 condition : (Variable a) is true
 while0:
   lw $v0 0($fp)
   beq $v0, $zero, end_while0
-# Start of Instr : If 1 condition : (Call of _mod_( Variable a 2 )) is true
+# Start of Instr : Stack Space Reserved for Var (r) at -FP(4)
+  addi $sp, $sp, -4
+# Start of Instr : Variable : r = Call of _sous_( Call of _sous_( Call of _sous_( Variable a 5 ) 5 ) Call of _mult_( 45 2 ) )
   lw $v0 0($fp)
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  li $v0, 5
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  jal _sous_
+  addi $sp, $sp, 8
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  li $v0, 5
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  jal _sous_
+  addi $sp, $sp, 8
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  li $v0, 45
   addi $sp, $sp, -4
   sw $v0, 0($sp)
   li $v0, 2
   addi $sp, $sp, -4
   sw $v0, 0($sp)
-  jal _mod_
+  jal _mult_
   addi $sp, $sp, 8
-  beq $v0, $zero, else1
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  jal _sous_
+  addi $sp, $sp, 8
+  sw $v0, -4($fp)
 # Start of Instr : Call of puts( Str Label str_0 )
   la $v0, str_0
   addi $sp, $sp, -4
   sw $v0, 0($sp)
   jal puts
+  addi $sp, $sp, 4
+# Start of Instr : Call of puti( Variable r )
+  lw $v0 -4($fp)
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  jal puti
   addi $sp, $sp, 4
 # Start of Instr : Call of puts( Str Label str_1 )
   la $v0, str_1
@@ -36,30 +70,74 @@ while0:
   sw $v0, 0($sp)
   jal puts
   addi $sp, $sp, 4
-# Start of Instr : Call of puti( Variable a )
+# Start of Instr : While 2 condition : (Variable a) is true
+while2:
+  lw $v0 0($fp)
+  beq $v0, $zero, end_while2
+# Start of Instr : Variable : a = Call of _sous_( Call of _sous_( Call of _sous_( Variable a 5 ) 5 ) Call of _mult_( 45 2 ) )
   lw $v0 0($fp)
   addi $sp, $sp, -4
   sw $v0, 0($sp)
-  jal puti
-  addi $sp, $sp, 4
+  li $v0, 5
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  jal _sous_
+  addi $sp, $sp, 8
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  li $v0, 5
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  jal _sous_
+  addi $sp, $sp, 8
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  li $v0, 45
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  li $v0, 2
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  jal _mult_
+  addi $sp, $sp, 8
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  jal _sous_
+  addi $sp, $sp, 8
+  sw $v0, 0($fp)
+# Start of Instr : Stack Space Reserved for Var (t) at -FP(8)
+  addi $sp, $sp, -4
+# Start of Instr : Variable : t = Variable a
+  lw $v0 0($fp)
+  sw $v0, -8($fp)
 # Start of Instr : Call of puts( Str Label str_2 )
   la $v0, str_2
   addi $sp, $sp, -4
   sw $v0, 0($sp)
   jal puts
   addi $sp, $sp, 4
-  j end_if1
-else1:
-end_if1:
-# Start of Instr : Variable : a = Call of _sous_( Variable a 1 )
-  lw $v0 0($fp)
+# Start of Instr : Call of puti( Variable t )
+  lw $v0 -8($fp)
   addi $sp, $sp, -4
   sw $v0, 0($sp)
-  li $v0, 1
+  jal puti
+  addi $sp, $sp, 4
+# Start of Instr : Call of puts( Str Label str_1 )
+  la $v0, str_1
   addi $sp, $sp, -4
   sw $v0, 0($sp)
-  jal _sous_
-  addi $sp, $sp, 8
+  jal puts
+  addi $sp, $sp, 4
+  j while2
+end_while2:
+# Start of Instr : Call of puts( Str Label str_1 )
+  la $v0, str_1
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  jal puts
+  addi $sp, $sp, 4
+# Start of Instr : Variable : a = Variable r
+  lw $v0 -4($fp)
   sw $v0, 0($fp)
   j while0
 end_while0:
@@ -95,16 +173,16 @@ puti:
 _div_:
   lw $t0 0($sp)
   lw $t1 4($sp)
- div $v0, $t1, $t0
+  div $v0, $t1, $t0
   jr $ra
 _mod_:
   lw $t0 0($sp)
   lw $t1 4($sp)
- rem $v0, $t1, $t0
+  rem $v0, $t1, $t0
   jr $ra
 
 .data
-str_2: .asciiz "
+str_1: .asciiz "
 "
-str_1: .asciiz "A = "
-str_0: .asciiz "A est impair car "
+str_0: .asciiz "r = "
+str_2: .asciiz "t = "

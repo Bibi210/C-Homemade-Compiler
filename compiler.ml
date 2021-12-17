@@ -8,14 +8,8 @@ type cinfo =
   ; env : Mips.addr Env.t
   ; fpo : int
   ; gen_label_counter : int
+  ; top_loop_uniq : string
   }
-
-let compile_value = function
-  | Int number -> [ Li (Reg V0, number) ]
-  | Bool b -> if b then [ Li (Reg V0, 1) ] else [ Li (Reg V0, 0) ]
-  | Data str -> [ La (Reg V0, Lbl str) ]
-  | Void -> [ Li (Reg V0, 0) ]
-;;
 
 let fmt_val = function
   | Int number -> string_of_int number
@@ -43,24 +37,37 @@ let rec fmt_instr begin_or_end instr c_info =
     | Expr expr -> fmt_expr expr c_info.env
     | Decl var ->
       Printf.sprintf "Stack Space Reserved for Var (%s) at -FP(%d)" var c_info.fpo
-    | While (cond, block) ->
-      "While "
-      ^ string_of_int c_info.gen_label_counter
-      ^ " condition : ("
-      ^ fmt_expr cond c_info.env
-      ^ ") is true"
+    | While (cond, block, do_mode) ->
+      let com =
+        "While "
+        ^ string_of_int c_info.gen_label_counter
+        ^ " condition : ("
+        ^ fmt_expr cond c_info.env
+        ^ ") is true"
+      in
+      if do_mode then "Do " ^ com else com
     | If (cond, _, _) ->
       "If "
       ^ string_of_int c_info.gen_label_counter
       ^ " condition : ("
       ^ fmt_expr cond c_info.env
       ^ ") is true"
+    | Break -> "Break"
+    | Continue -> "Continue"
+    | _ -> "None"
   in
   if String.equal "None" tmp
   then "None"
   else if begin_or_end == 0
   then "Start of Instr : " ^ tmp
   else "End of Instr : " ^ tmp
+;;
+
+let compile_value = function
+  | Int number -> [ Li (Reg V0, number) ]
+  | Bool b -> if b then [ Li (Reg V0, 1) ] else [ Li (Reg V0, 0) ]
+  | Data str -> [ La (Reg V0, Lbl str) ]
+  | Void -> [ Li (Reg V0, 0) ]
 ;;
 
 let rec compile_expr e env =
@@ -85,25 +92,47 @@ let rec compile_instr instr c_info =
     ; env = Env.add var (Mem (FP, -c_info.fpo)) c_info.env
     ; fpo = c_info.fpo + 4
     }
-  | While (cond, block) ->
+  | While (cond, block, do_mode) ->
     (* TODO *)
     let while_uniq = "while" ^ string_of_int c_info.gen_label_counter in
     let compiled_block_info =
       compile_block
         block
-        { c_info with gen_label_counter = c_info.gen_label_counter + 1; code = [] }
+        { c_info with
+          gen_label_counter = c_info.gen_label_counter + 1
+        ; code = []
+        ; top_loop_uniq = while_uniq
+        }
     in
-    { c_info with
-      code =
-        c_info.code
-        @ [ Jump_Lbl while_uniq ]
-        @ compile_expr cond c_info.env
-        @ [ Beq (V0, ZERO, "end_" ^ while_uniq) ]
-        @ compiled_block_info.code
-        @ [ J while_uniq ]
-        @ [ Jump_Lbl ("end_" ^ while_uniq) ]
-    ; gen_label_counter = compiled_block_info.gen_label_counter + 1
-    }
+    let out =
+      { c_info with
+        gen_label_counter = compiled_block_info.gen_label_counter + 1
+      ; top_loop_uniq = c_info.top_loop_uniq
+      }
+    in
+    if do_mode
+    then
+      { out with
+        code =
+          c_info.code
+          @ [ Jump_Lbl while_uniq ]
+          @ compiled_block_info.code
+          @ compile_expr cond c_info.env
+          @ [ Beq (V0, ZERO, "end_" ^ while_uniq)
+            ; J while_uniq
+            ; Jump_Lbl ("end_" ^ while_uniq)
+            ]
+      }
+    else
+      { out with
+        code =
+          c_info.code
+          @ [ Jump_Lbl while_uniq ]
+          @ compile_expr cond c_info.env
+          @ [ Beq (V0, ZERO, "end_" ^ while_uniq) ]
+          @ compiled_block_info.code
+          @ [ J while_uniq; Jump_Lbl ("end_" ^ while_uniq) ]
+      }
   | If (cond, block_true, block_false) ->
     let else_uniq = "else" ^ string_of_int c_info.gen_label_counter in
     let end_uniq = "end_if" ^ string_of_int c_info.gen_label_counter in
@@ -131,6 +160,15 @@ let rec compile_instr instr c_info =
         @ false_block_info.code
         @ [ Jump_Lbl end_uniq ]
     }
+  | Continue -> { c_info with code = c_info.code @ [ J c_info.top_loop_uniq ] }
+  | Break -> { c_info with code = c_info.code @ [ J ("end_" ^ c_info.top_loop_uniq) ] }
+  | NestedBlock block ->
+    let compiled_block_info =
+      compile_block
+        block
+        { c_info with gen_label_counter = c_info.gen_label_counter + 1; code = [] }
+    in
+    { c_info with code = c_info.code @ compiled_block_info.code }
 
 and compile_block block c_info =
   match block with
@@ -156,7 +194,9 @@ let demo_after =
   [ Move (SP, FP); Lw (Reg RA, Mem (SP, 4)); Lw (Reg FP, Mem (SP, 8)); Jr RA ]
 ;;
 
-let demo_cinfo = { code = []; env = Env.empty; fpo = 0; gen_label_counter = 0 }
+let demo_cinfo =
+  { code = []; env = Env.empty; fpo = 0; gen_label_counter = 0; top_loop_uniq = "-1" }
+;;
 
 let compile ir simplify =
   let c_info = compile_block ir demo_cinfo in

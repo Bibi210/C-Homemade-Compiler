@@ -1,0 +1,6 @@
+{
+    if (true)
+        continue;
+}
+
+// Error Output : Error on line 3 col 8: This Continue is outside of any loop.

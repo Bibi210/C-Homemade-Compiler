@@ -48,16 +48,21 @@ let rec simplify_inst instr env =
     let val_env = simplify_expr x env in
     Simplify_IR.Expr val_env.expr, val_env.env
   | Base_IR.Decl x -> Simplify_IR.Decl x, env
-  | Base_IR.While (cond, block) ->
+  | Base_IR.While (cond, block, do_mode) ->
     let expr_env = simplify_expr cond env in
     let simplify_block, block_env = simplify_block block expr_env.env in
-    Simplify_IR.While (expr_env.expr, simplify_block), block_env
+    Simplify_IR.While (expr_env.expr, simplify_block, do_mode), block_env
   | Base_IR.If (cond, b_true, b_false) ->
     let expr_env = simplify_expr cond env in
     let simplify_block_true, true_block_env = simplify_block b_true expr_env.env in
     let simplify_block_false, false_block_env = simplify_block b_false true_block_env in
     ( Simplify_IR.If (expr_env.expr, simplify_block_true, simplify_block_false)
     , false_block_env )
+  | Base_IR.Continue -> Simplify_IR.Continue, env
+  | Base_IR.Break -> Simplify_IR.Break, env
+  | Base_IR.NestedBlock b ->
+    let simplify_block, new_env = simplify_block b env in
+    Simplify_IR.NestedBlock simplify_block, new_env
 
 and simplify_block block env =
   match block with

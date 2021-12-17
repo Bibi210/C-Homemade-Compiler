@@ -40,7 +40,11 @@ rule token = parse
 | '%' {Lmod}
 | '/' {Ldiv}
 | '=' {Lassign}
+| "break" {Lbreak}
+| "continue" {Lcontinue}
 | "while" {Lwhile}
+| "for" {Lfor}
+| "do" {Ldo}
 | "if" {Lif}
 | "else" {Lelse}
 | "//" {line_comment lexbuf}

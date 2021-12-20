@@ -1,7 +1,10 @@
 %{
   open Ast.Syntax
   open Ast
-  
+  let get_val x default = 
+  match x with
+  |None -> default
+  |Some result -> result
 %}
 %token <string>Lstring
 %token <bool> Lbool
@@ -10,7 +13,7 @@
 %token Ldef_int Ldef_bool Ldef_string
 %token <string> Lident
 
-%token Lwhile Lfor Lif Lelse Ldo Lbreak Lcontinue
+%token Lwhile Lfor Lif Lelse Ldo Lbreak Lcontinue Lreturn Lswitch Lc Lcase Ldefault
 
 %token Lend Lvirgule Lopar Lcpar Lsc Lobra_curl Lcbra_curl
 
@@ -47,11 +50,20 @@ instr:
 | decl_ls = flatten(decl);Lsc{
   decl_ls
 }
+|Lreturn ;opt_expr = option(expr);Lsc{
+  let expr = get_val opt_expr (Value {value = Void;pos = $startpos(opt_expr)}) in
+  [Return {expr = expr;pos = $startpos($1)}]
+}
 |Lwhile ; cond = expr; to_exec = instr{
-  [While {cond = cond;pos = $startpos($1);block = to_exec;do_mode = false;}]
+  [While {cond = cond;pos = $startpos($1);block = NestedBlock to_exec;do_mode = false;}]
 }
 |Ldo;to_exec = instr;Lwhile;cond = expr;Lsc{
-  [While {cond = cond;pos = $startpos($1);block = to_exec;do_mode = true;}]
+  [While {cond = cond;pos = $startpos($1);block = NestedBlock to_exec;do_mode = true;}]
+}
+|Lfor;Lopar ;dcl = instr ; opt_cond = option(expr); Lsc;opt_incre = option(expr); Lcpar; to_exec = instr{
+  let cond = get_val opt_cond (Value {value = Bool true;pos = $startpos(opt_cond)}) in
+  let incre = get_val opt_incre (Value {value = Void;pos = $startpos(opt_cond)}) in
+  [NestedBlock (dcl @ [For {cond = cond;pos = $startpos($1);incre = incre ; block = NestedBlock to_exec}])]
 }
 |Lbreak{
   [Break $startpos($1)]
@@ -60,16 +72,30 @@ instr:
   [Continue $startpos($1)]
 }
 |Lif ; cond = expr; block_true = instr;opt_else = option(pair(Lelse,instr)){
-  [If {cond = cond;pos = $startpos($1);block_true = block_true
+  [If {cond = cond;pos = $startpos($1);block_true = NestedBlock block_true
   ; block_false = (match opt_else with 
-  | None -> []
-  | Some(_,b) -> b)
+  | None ->NestedBlock []
+  | Some(_,b) -> NestedBlock b)
   }]
 }
 |nested_block = block{
   [NestedBlock nested_block]
 }
+/* |Lswitch; expr ;Lobra_curl;pair(option(list(instr)),option(list(case)));Lcbra_curl{
+  []
+} */
 ;
+
+/* case:
+|Lcase; cond = expr ; Lc ;opt_b =  option(list(instr)) {
+  let b = get_val opt_b [] in
+   cond,b
+}
+|Ldefault ; Lc ;opt_b =  option(list(instr)) {
+  let b = get_val opt_b [] in
+   Value {value = Bool true;pos = $startpos($1)},b
+} */
+
 
 decl:
 |var_type = var_types;arguments = separated_nonempty_list(Lvirgule, expr){
@@ -77,7 +103,7 @@ decl:
   (fun a -> match a with
   |Assign syntax_assign -> [Decl{var_type = var_type;var_name = syntax_assign.var_name;pos = syntax_assign.pos};Expr (Assign syntax_assign) ] 
   |Var syntax_var -> [Decl{var_type = var_type;var_name = syntax_var.name;pos = syntax_var.pos}]
-  |x -> raise (Error (Printf.sprintf "Not Valid Init" , $endpos(arguments)))
+  |_ -> raise (Error (Printf.sprintf "Not Valid Init" , $endpos(arguments)))
   )
   arguments 
 }

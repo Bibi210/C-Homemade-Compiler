@@ -1,22 +1,19 @@
 {
-  int a = 20;
   puts("Should not print the Var A");
   puts("\n");
-  while (a) {
+  for (int a = 20; a; a = a - 1) {
     while (true) {
       if (true) {
         break;
-        puts("\n");
+        puts("not_happening");
+      } else {
+        int r;
+        continue;
       }
-      continue;
-      puts("\n");
+      puts("not_happening");
     }
-    a = a - 1;
     continue;
-    puts("a = ");
-    puti(a);
-    puts("\n");
+    puts("not_happening");
   }
-  
 }
 // Spim Output : Nothing Should be output be doesnt go in infinite loop

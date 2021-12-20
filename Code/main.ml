@@ -1,8 +1,6 @@
 (* ocamlbuild -use-menhir test.byte *)
 
 open Lexing
-open Ast
-open Simplifier
 
 let file = open_out "prog.asm"
 

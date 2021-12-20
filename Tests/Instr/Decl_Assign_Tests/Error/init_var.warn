@@ -1,0 +1,25 @@
+{
+  int a;
+  while (a) {
+    int r = a - 5 - 5 - (45 * 2);
+    puts("r = ");
+    puti(r);
+    puts("\n");
+    while (a) {
+      a = a - 5 - 5 - (45 * 2);
+      int t = a;
+      puts("t = ");
+      puti(t);
+      puts("\n");
+    }
+    puts("\n");
+    a = r;
+  }
+}
+
+/* Warning Output : 
+Warning on line 3 col 9: The Variable: ( a ) might be uninitialized .
+Warning on line 4 col 12: The Variable: ( a ) might be uninitialized .
+Warning on line 8 col 11: The Variable: ( a ) might be uninitialized .
+Warning on line 9 col 10: The Variable: ( a ) might be uninitialized .
+*/

@@ -40,8 +40,13 @@ rule token = parse
 | '%' {Lmod}
 | '/' {Ldiv}
 | '=' {Lassign}
+| "switch" {Lswitch}
+| "case" {Lcase}
+| ':' {Lc}
+| "default" {Ldefault}
 | "break" {Lbreak}
 | "continue" {Lcontinue}
+| "return" {Lreturn}
 | "while" {Lwhile}
 | "for" {Lfor}
 | "do" {Ldo}

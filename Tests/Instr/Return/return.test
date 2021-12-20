@@ -1,0 +1,24 @@
+{
+  int a = 100;
+  {
+  return puti(a);
+  }
+  while (a) {
+    int r = a - 5 - 5;
+    puts("r = ");
+    puti(r);
+    puts("\n");
+    while (a) {
+      a = a - 5 - 5;
+      int t = a;
+      puts("t = ");
+      puti(t);
+      puts("\n");
+    }
+    puts("\n");
+    a = r;
+  }
+
+}
+
+// Spim Output : Only 100

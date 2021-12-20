@@ -1,0 +1,12 @@
+{
+  for (int i = 10; i; i = i - 1) {
+    puts("i = ");
+    puti(i);
+    puts("\n");
+
+    continue;
+    puts("Nothing");
+  }
+  int i = 10;
+}
+// Spim output : Count Down to 0

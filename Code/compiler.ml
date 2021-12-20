@@ -8,7 +8,8 @@ type cinfo =
   ; env : Mips.addr Env.t
   ; fpo : int
   ; gen_label_counter : int
-  ; top_loop_uniq : string
+  ; top_loop_start : string
+  ; top_loop_end : string
   }
 
 let fmt_val = function
@@ -23,21 +24,21 @@ let rec fmt_expr e env =
   | Value valeur -> fmt_val valeur
   | Call (name, args) ->
     List.fold_left
-      (fun acc a -> acc ^ " " ^ fmt_expr a env)
+      (fun acc a -> acc ^ fmt_expr a env ^ " , ")
       (Printf.sprintf "Call of %s(" name)
       args
-    ^ " )"
+    ^ ")"
   | Var var -> "Variable " ^ var
   | Assign (name, expr) -> Printf.sprintf "Variable : %s = %s" name (fmt_expr expr env)
 ;;
 
-let rec fmt_instr begin_or_end instr c_info =
+let fmt_instr begin_or_end instr c_info =
   let tmp =
     match instr with
     | Expr expr -> fmt_expr expr c_info.env
     | Decl var ->
       Printf.sprintf "Stack Space Reserved for Var (%s) at -FP(%d)" var c_info.fpo
-    | While (cond, block, do_mode) ->
+    | While (cond, _, do_mode) ->
       let com =
         "While "
         ^ string_of_int c_info.gen_label_counter
@@ -54,7 +55,21 @@ let rec fmt_instr begin_or_end instr c_info =
       ^ ") is true"
     | Break -> "Break"
     | Continue -> "Continue"
-    | _ -> "None"
+    | NestedBlock _ -> "None"
+    | None -> "None"
+    | For (cond, incre, _) ->
+      let com =
+        "For "
+        ^ string_of_int c_info.gen_label_counter
+        ^ " condition : ("
+        ^ fmt_expr cond c_info.env
+        ^ ") "
+        ^ "\n# Increment :("
+        ^ fmt_expr incre c_info.env
+        ^ ")"
+      in
+      com
+    | Return expr -> "Return " ^ fmt_expr expr c_info.env
   in
   if String.equal "None" tmp
   then "None"
@@ -88,61 +103,85 @@ let rec compile_instr instr c_info =
   | Expr e -> { c_info with code = c_info.code @ compile_expr e c_info.env }
   | Decl var ->
     { c_info with
-      code = c_info.code @ [ Addi (SP, SP, -4) ]
-    ; env = Env.add var (Mem (FP, -c_info.fpo)) c_info.env
+      env = Env.add var (Mem (FP, -c_info.fpo)) c_info.env
     ; fpo = c_info.fpo + 4
     }
-  | While (cond, block, do_mode) ->
-    (* TODO *)
-    let while_uniq = "while" ^ string_of_int c_info.gen_label_counter in
+  | For (cond, incre, block) ->
+    let for_uniq = "for" ^ string_of_int c_info.gen_label_counter in
+    let for_incre = "for_incre" ^ string_of_int c_info.gen_label_counter in
     let compiled_block_info =
-      compile_block
+      compile_instr
         block
         { c_info with
           gen_label_counter = c_info.gen_label_counter + 1
         ; code = []
-        ; top_loop_uniq = while_uniq
+        ; top_loop_start = for_incre
+        ; top_loop_end = "end_" ^ for_uniq
         }
     in
-    let out =
-      { c_info with
-        gen_label_counter = compiled_block_info.gen_label_counter + 1
-      ; top_loop_uniq = c_info.top_loop_uniq
-      }
+    { c_info with
+      gen_label_counter = compiled_block_info.gen_label_counter + 1
+    ; top_loop_start = c_info.top_loop_start
+    ; top_loop_end = c_info.top_loop_end
+    ; fpo = c_info.fpo + (compiled_block_info.fpo - c_info.fpo)
+    ; code =
+        c_info.code
+        @ [ Jump_Lbl for_uniq ]
+        @ compile_expr cond c_info.env
+        @ [ Beq (V0, ZERO, "end_" ^ for_uniq) ]
+        @ compiled_block_info.code
+        @ [ Jump_Lbl for_incre ]
+        @ compile_expr incre c_info.env
+        @ [ J for_uniq ]
+        @ [ Jump_Lbl ("end_" ^ for_uniq) ]
+    }
+  | While (cond, block, do_mode) ->
+    let while_uniq = "while" ^ string_of_int c_info.gen_label_counter in
+    let compiled_block_info =
+      compile_instr
+        block
+        { c_info with
+          gen_label_counter = c_info.gen_label_counter + 1
+        ; code = []
+        ; top_loop_start = (if do_mode then "Test_" ^ while_uniq else while_uniq)
+        ; top_loop_end = "end_" ^ while_uniq
+        }
     in
-    if do_mode
-    then
-      { out with
-        code =
+    { c_info with
+      gen_label_counter = compiled_block_info.gen_label_counter + 1
+    ; top_loop_start = c_info.top_loop_start
+    ; top_loop_end = c_info.top_loop_end
+    ; fpo = c_info.fpo + (compiled_block_info.fpo - c_info.fpo)
+    ; code =
+        (if do_mode
+        then
           c_info.code
           @ [ Jump_Lbl while_uniq ]
           @ compiled_block_info.code
           @ compile_expr cond c_info.env
+          @ [ Jump_Lbl ("Test_" ^ while_uniq) ]
           @ [ Beq (V0, ZERO, "end_" ^ while_uniq)
             ; J while_uniq
             ; Jump_Lbl ("end_" ^ while_uniq)
             ]
-      }
-    else
-      { out with
-        code =
+        else
           c_info.code
           @ [ Jump_Lbl while_uniq ]
           @ compile_expr cond c_info.env
           @ [ Beq (V0, ZERO, "end_" ^ while_uniq) ]
           @ compiled_block_info.code
-          @ [ J while_uniq; Jump_Lbl ("end_" ^ while_uniq) ]
-      }
+          @ [ J while_uniq; Jump_Lbl ("end_" ^ while_uniq) ])
+    }
   | If (cond, block_true, block_false) ->
     let else_uniq = "else" ^ string_of_int c_info.gen_label_counter in
     let end_uniq = "end_if" ^ string_of_int c_info.gen_label_counter in
     let true_block_info =
-      compile_block
+      compile_instr
         block_true
         { c_info with code = []; gen_label_counter = c_info.gen_label_counter + 1 }
     in
     let false_block_info =
-      compile_block
+      compile_instr
         block_false
         { c_info with
           gen_label_counter = true_block_info.gen_label_counter + 1
@@ -159,26 +198,44 @@ let rec compile_instr instr c_info =
         @ [ Jump_Lbl else_uniq ]
         @ false_block_info.code
         @ [ Jump_Lbl end_uniq ]
+    ; fpo =
+        c_info.fpo
+        + (false_block_info.fpo - c_info.fpo)
+        + (true_block_info.fpo - c_info.fpo)
     }
-  | Continue -> { c_info with code = c_info.code @ [ J c_info.top_loop_uniq ] }
-  | Break -> { c_info with code = c_info.code @ [ J ("end_" ^ c_info.top_loop_uniq) ] }
+  | Continue -> { c_info with code = c_info.code @ [ J c_info.top_loop_start ] }
+  | Break -> { c_info with code = c_info.code @ [ J c_info.top_loop_end ] }
   | NestedBlock block ->
     let compiled_block_info =
       compile_block
         block
-        { c_info with gen_label_counter = c_info.gen_label_counter + 1; code = [] }
+        { c_info with gen_label_counter = c_info.gen_label_counter; code = [] }
     in
-    { c_info with code = c_info.code @ compiled_block_info.code }
+    { c_info with
+      code = c_info.code @ compiled_block_info.code
+    ; fpo = c_info.fpo + (compiled_block_info.fpo - c_info.fpo)
+    }
+  | Return expr ->
+    { c_info with
+      code =
+        c_info.code
+        @ compile_expr expr c_info.env
+        @ [ Move (SP, FP); Lw (Reg RA, Mem (SP, 4)); Lw (Reg FP, Mem (SP, 8)); Jr RA ]
+    }
+  | None -> c_info
 
 and compile_block block c_info =
-  match block with
-  | [] -> c_info
-  | hd :: tail ->
-    compile_block
-      tail
-      (compile_instr
-         hd
-         { c_info with code = c_info.code @ [ Coms (fmt_instr 0 hd c_info) ] })
+  let rec compile_block_aux block c_info =
+    match block with
+    | [] -> c_info
+    | hd :: tail ->
+      compile_block_aux
+        tail
+        (compile_instr
+           hd
+           { c_info with code = c_info.code @ [ Coms (fmt_instr 0 hd c_info) ] })
+  in
+  compile_block_aux block c_info
 ;;
 
 let demo_before =
@@ -195,12 +252,39 @@ let demo_after =
 ;;
 
 let demo_cinfo =
-  { code = []; env = Env.empty; fpo = 0; gen_label_counter = 0; top_loop_uniq = "-1" }
+  { code = []
+  ; env = Env.empty
+  ; fpo = 0
+  ; gen_label_counter = 0
+  ; top_loop_start = ""
+  ; top_loop_end = ""
+  }
+;;
+
+let cleanup_asm text =
+  let _, ls =
+    List.fold_left
+      (fun acc elem ->
+        let is_kept, list = acc in
+        match elem with
+        | J _ -> false, if is_kept then list @ [ elem ] else list
+        | Jump_Lbl _ -> true, list @ [ elem ]
+        | _ -> is_kept, if is_kept then list @ [ elem ] else list)
+      (true, [])
+      text
+  in
+  ls
 ;;
 
 let compile ir simplify =
   let c_info = compile_block ir demo_cinfo in
-  { text = demo_before @ c_info.code @ demo_after @ Baselib.builtins
+  { text =
+      cleanup_asm
+        (demo_before
+        @ [ Addi (SP, SP, -c_info.fpo) ]
+        @ c_info.code
+        @ demo_after
+        @ Baselib.builtins)
   ; data = List.of_seq (Seq.map (fun (str, label) -> label, Asciiz str) simplify)
   }
 ;;

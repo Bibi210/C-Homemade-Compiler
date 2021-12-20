@@ -8,7 +8,7 @@ type prog_type =
   | Str_t
   | Void_t
   | Func_t of prog_type * prog_type list
-(*| Var_t of prog_type * bool*)
+  | Var_t of prog_type * bool
 
 module type Parameters = sig
   type value
@@ -40,11 +40,14 @@ module IR (P : Parameters) = struct
   type instr =
     | Expr of expr
     | Decl of ident
-    | While of expr * block * bool
-    | If of expr * block * block
+    | While of expr * instr * bool
+    | For of expr * expr * instr
+    | If of expr * instr * instr
     | Break
     | Continue
     | NestedBlock of block
+    | Return of expr
+    | None
 
   and block = instr list
 end
@@ -82,19 +85,30 @@ module Syntax = struct
         }
     | While of
         { cond : expr
-        ; block : block
+        ; block : instr
         ; do_mode : bool
         ; pos : Lexing.position
         }
     | If of
         { cond : expr
-        ; block_true : block
-        ; block_false : block
+        ; block_true : instr
+        ; block_false : instr
+        ; pos : Lexing.position
+        }
+    | For of
+        { cond : expr
+        ; incre : expr
+        ; block : instr
+        ; pos : Lexing.position
+        }
+    | Return of
+        { expr : expr
         ; pos : Lexing.position
         }
     | Break of Lexing.position
     | Continue of Lexing.position
     | NestedBlock of block
+  
 
   and block = instr list
 end

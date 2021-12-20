@@ -1,0 +1,14 @@
+{
+    int t = 5;
+    do{
+        int a = 0;
+        puts("A = ");
+        puti(a);
+        puts("\n");
+        {{{{{{{{puts ("\n");}}}}}}}}
+        break;
+        puts ("Not Happening");
+    }while t = t- 1;
+}
+
+// Spim Output : A = 0 five times

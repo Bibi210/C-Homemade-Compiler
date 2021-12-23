@@ -2,6 +2,11 @@ type ident = string
 
 exception Error of string * Lexing.position
 
+let native_func = "_."
+(* 
+ let defined_func = "__."
+*)
+
 type prog_type =
   | Bool_t
   | Int_t
@@ -47,9 +52,14 @@ module IR (P : Parameters) = struct
     | Continue
     | NestedBlock of block
     | Return of expr
+    | Goto of ident
+    | Label of ident
     | None
 
   and block = instr list
+
+  type def = Func of ident * ident list * block
+  type prog = def list
 end
 
 module Base_IR = IR (Base_Value)
@@ -108,7 +118,25 @@ module Syntax = struct
     | Break of Lexing.position
     | Continue of Lexing.position
     | NestedBlock of block
-  
+    | Label of
+        { lbl : ident
+        ; pos : Lexing.position
+        }
+    | Goto of
+        { lbl : ident
+        ; pos : Lexing.position
+        }
 
   and block = instr list
+
+  type def =
+    | Func of
+        { func_type : prog_type
+        ; func_name : ident
+        ; args : ident list
+        ; block : block
+        ; pos : Lexing.position
+        }
+
+  type prog = def list
 end

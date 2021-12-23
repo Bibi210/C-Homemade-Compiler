@@ -5,15 +5,16 @@
   match x with
   |None -> default
   |Some result -> result
+
 %}
 %token <string>Lstring
 %token <bool> Lbool
 %token <int> Lint
 
-%token Ldef_int Ldef_bool Ldef_string
+%token Ldef_int Ldef_bool Ldef_string Ldef_void
 %token <string> Lident
 
-%token Lwhile Lfor Lif Lelse Ldo Lbreak Lcontinue Lreturn Lswitch Lc Lcase Ldefault
+%token Lwhile Lfor Lif Lelse Ldo Lbreak Lcontinue Lreturn Lswitch Lc Lcase Ldefault Lgoto
 
 %token Lend Lvirgule Lopar Lcpar Lsc Lobra_curl Lcbra_curl
 
@@ -37,6 +38,11 @@
 prog:
 | b = block; Lend { b };
 
+func_def:
+|func_type = func_types; func_name = Lident;Lopar;args = separated_list(Lvirgule, expr);Lcpar;body = block{
+
+}
+;
 block:
 |Lobra_curl; instr_ls = list(instr) ; Lcbra_curl{
   List.flatten instr_ls
@@ -81,12 +87,18 @@ instr:
 |nested_block = block{
   [NestedBlock nested_block]
 }
+|lbl = Lident;Lc{
+  [Label {lbl = lbl;pos = $startpos(lbl)}]
+}
+|Lgoto;lbl = Lident;Lsc{
+  [Goto {lbl = lbl;pos = $startpos(lbl)}]
+}
 /* |Lswitch; expr ;Lobra_curl;pair(option(list(instr)),option(list(case)));Lcbra_curl{
   []
-} */
+} 
 ;
 
-/* case:
+ case:
 |Lcase; cond = expr ; Lc ;opt_b =  option(list(instr)) {
   let b = get_val opt_b [] in
    cond,b
@@ -94,7 +106,7 @@ instr:
 |Ldefault ; Lc ;opt_b =  option(list(instr)) {
   let b = get_val opt_b [] in
    Value {value = Bool true;pos = $startpos($1)},b
-} */
+}  */
 
 
 decl:
@@ -123,7 +135,7 @@ expr:
 }
 (*Parsing Basic Operators*)
 | expr_a = expr; op_name = op; expr_b = expr {
-  Call {name = op_name
+  Call {name = native_func^op_name
   ; args = [expr_a ; expr_b]
   ; pos = $startpos(op_name)}
 }
@@ -140,12 +152,16 @@ expr:
 |Ldef_string {Str_t}
 |Ldef_int {Int_t}
 
+%inline func_types:
+|v_type = var_types {v_type}
+|Ldef_void {Void_t}
+
 %inline op:
-|Ladd {"_plus_"}
-|Lsous {"_sous_"}
-|Lmult {"_mult_"}
-|Lmod {"_mod_"}
-|Ldiv {"_div_"}
+|Ladd {"plus"}
+|Lsous {"sous"}
+|Lmult {"mult"}
+|Lmod {"mod"}
+|Ldiv {"div"}
 
 %inline prog_val:
 |nb = Lint {Base_Value.Int nb}

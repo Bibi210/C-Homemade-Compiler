@@ -17,20 +17,21 @@ Course available [here](https://pablo.rauzy.name/teaching/ic/) .
 
 ## Explications
 This projet is in 3 part Front-end,Middle-end and Back-end.
-#### Front-end :
-- Lexer 
-- Parser
+#### Front-end (Menhir) :
+- Lexer (Explain)
+- Parser (Explain)
 
 #### Mid-end :
-- Sementics 
-- Simplifier
+- Sementics (Explain)
+- Simplifier (Explain)
   
 #### Back-end :
-- Compiler 
+- Compiler (Explain)
 
 
 ## Optimizations
 - String Duplicate 1 time register
+- Simplifier Deadcode Warning and cleanup
 - Asm Cleanup of deadcode (which is not conditional)
 - Do not compile rest of block after break/continue or return
 
@@ -53,15 +54,16 @@ Objective is to finish, test and debug most of those.
 - [X] If
 - [X] Return
 - [X] Break
-- [ ] Continue (To opti)
+- [X] Continue
+- [X] Goto
 - [ ] Switch
-- [ ] Goto
   
 #### Defs :  
 - [ ] Functions
 - [ ] Globals
 
 #### Bonus :
+- [X] Automatic Assembly comments
 - [ ] Arrays
 - [ ] Struct
 - [ ] Typedef (if I can)

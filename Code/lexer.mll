@@ -12,6 +12,7 @@
   [ "int", Ldef_int
   ; "bool",Ldef_bool
   ; "string", Ldef_string
+  ; "void",Ldef_void
   ]
   )
 
@@ -52,6 +53,7 @@ rule token = parse
 | "do" {Ldo}
 | "if" {Lif}
 | "else" {Lelse}
+| "goto" {Lgoto}
 | "//" {line_comment lexbuf}
 | "/*" {multi_line_comment lexbuf}
 | '"'        { Lstring (String.of_seq (List.to_seq (string_read lexbuf))) }

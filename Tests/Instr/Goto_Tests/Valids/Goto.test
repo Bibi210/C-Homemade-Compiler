@@ -1,0 +1,23 @@
+{
+  puts("Should not print the Var A");
+  puts("\n");
+  begin:
+  puts("Hey\n");
+  for (int a = 20; a; a = a - 1) {
+    while (true) {
+      if (true) {
+        goto end_while1;
+        puts("not_happening");
+      } else {
+        int r;
+        continue;
+      }
+      puts("not_happening");
+    }
+  end_while1:
+    goto begin;
+    continue;
+    puts("not_happening");
+  }
+}
+// Spim Output : Infinite loop of Hey

@@ -3,7 +3,7 @@ module Simplify_Env = Map.Make (String)
 
 let _counter = ref 0
 let _return_enconter = ref false
-let _break_continue_enconter = ref false
+let _clear_on = ref false
 
 type expr_env =
   { env : string Simplify_Env.t
@@ -45,7 +45,7 @@ let rec simplify_expr code env =
 ;;
 
 let rec simplify_inst instr env =
-  let prev_ret = !_return_enconter || !_break_continue_enconter in
+  let prev_ret = !_return_enconter || !_clear_on in
   let tmp, env =
     match instr with
     | Base_IR.Expr x ->
@@ -68,10 +68,10 @@ let rec simplify_inst instr env =
       ( Simplify_IR.If (expr_env.expr, simplify_block_true, simplify_block_false)
       , false_block_env )
     | Base_IR.Continue ->
-      _break_continue_enconter := true;
+      _clear_on := true;
       Simplify_IR.Continue, env
     | Base_IR.Break ->
-      _break_continue_enconter := true;
+      _clear_on := true;
       Simplify_IR.Break, env
     | Base_IR.NestedBlock b ->
       let simplify_block, new_env = simplify_block b env in
@@ -81,6 +81,10 @@ let rec simplify_inst instr env =
       let expr_env = simplify_expr expr env in
       Simplify_IR.Return expr_env.expr, expr_env.env
     | Base_IR.None -> Simplify_IR.None, env
+    | Base_IR.Label lbl -> Simplify_IR.Label lbl, env
+    | Base_IR.Goto lbl ->
+      _clear_on := true;
+      Simplify_IR.Goto lbl, env
   in
   if prev_ret then Simplify_IR.None, env else tmp, env
 
@@ -94,7 +98,7 @@ and simplify_block block env =
       instr :: code, output_env
   in
   let tmp = simplify_block_aux block env in
-  _break_continue_enconter := false;
+  _clear_on := false;
   tmp
 ;;
 

@@ -1,0 +1,6 @@
+{
+goto undef;
+undef:
+undef:
+}
+// Error Output : Error on line 2 col 5: This Goto use an unset label.

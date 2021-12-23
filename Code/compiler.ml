@@ -37,7 +37,7 @@ let fmt_instr begin_or_end instr c_info =
     match instr with
     | Expr expr -> fmt_expr expr c_info.env
     | Decl var ->
-      Printf.sprintf "Stack Space Reserved for Var (%s) at -FP(%d)" var c_info.fpo
+      Printf.sprintf "(Implicit) Stack Space Reserved for Var (%s) at -FP(%d)" var c_info.fpo
     | While (cond, _, do_mode) ->
       let com =
         "While "
@@ -70,6 +70,8 @@ let fmt_instr begin_or_end instr c_info =
       in
       com
     | Return expr -> "Return " ^ fmt_expr expr c_info.env
+    | Label label -> Printf.sprintf "Set of Label (%s)" label
+    | Goto label -> Printf.sprintf "Goto Label (%s)" label
   in
   if String.equal "None" tmp
   then "None"
@@ -223,6 +225,8 @@ let rec compile_instr instr c_info =
         @ [ Move (SP, FP); Lw (Reg RA, Mem (SP, 4)); Lw (Reg FP, Mem (SP, 8)); Jr RA ]
     }
   | None -> c_info
+  | Goto lbl -> { c_info with code = c_info.code @ [ J lbl ] }
+  | Label lbl -> { c_info with code = c_info.code @ [ Jump_Lbl lbl ] }
 
 and compile_block block c_info =
   let rec compile_block_aux block c_info =

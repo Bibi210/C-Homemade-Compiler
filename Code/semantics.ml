@@ -1,10 +1,14 @@
 open Ast
 open Ast.Base_Value
 open Ast.Base_IR
-open Baselib
 open Lexing
+module Env = Map.Make (String)
 
 exception Error of string * Lexing.position
+
+let current_func_name = ref "None"
+let gotos = ref []
+let jump_lbl_env = ref Env.empty
 
 type val_type =
   { value : value
@@ -14,7 +18,7 @@ type val_type =
 type expr_type =
   { expr : Base_IR.expr
   ; base_type : prog_type
-  ; env : prog_type Baselib.Env.t
+  ; env : prog_type Env.t
   }
 
 let analyze_value = function
@@ -56,8 +60,12 @@ let rec analyze_expr expr env =
     let val_t = analyze_value ast_val.value in
     { expr = Value val_t.value; base_type = val_t.base_type; env }
   | Syntax.Call called_func ->
-    (match Baselib.Env.find_opt called_func.name env with
-    | None -> raise (Error (called_func.name ^ " is not defined", called_func.pos))
+    (match Env.find_opt called_func.name env with
+    | None ->
+      let might_nat = native_func ^ called_func.name in
+      if Option.is_some (Env.find_opt might_nat env)
+      then analyze_expr (Syntax.Call { called_func with name = might_nat }) env
+      else raise (Error (called_func.name ^ " is not defined", called_func.pos))
     | Some (Func_t (return_type, args_types)) ->
       if List.length called_func.args != List.length args_types
       then
@@ -184,6 +192,23 @@ let rec analyze_instr intr env is_loop =
     then Continue, env
     else raise (Error ("This Continue is outside of any loop", pos))
   | Syntax.NestedBlock block -> NestedBlock (analyze_block block env is_loop), env
+  | Syntax.Label syntax_lbl ->
+    (match Env.find_opt syntax_lbl.lbl !jump_lbl_env with
+    | None ->
+      jump_lbl_env := Env.add syntax_lbl.lbl syntax_lbl.pos !jump_lbl_env;
+      Label (!current_func_name ^ "_" ^ syntax_lbl.lbl), env
+    | Some prev_pos ->
+      raise
+        (Error
+           ( Printf.sprintf
+               "This Label (%s) is already set on line %d col %d "
+               syntax_lbl.lbl
+               prev_pos.pos_lnum
+               prev_pos.pos_cnum
+           , syntax_lbl.pos )))
+  | Syntax.Goto syntax_goto ->
+    gotos := [ syntax_goto.lbl, syntax_goto.pos ] @ !gotos;
+    Goto (!current_func_name ^ "_" ^ syntax_goto.lbl), env
 
 and analyze_block block env is_loop =
   match block with
@@ -193,4 +218,18 @@ and analyze_block block env is_loop =
     analyzed_instr :: analyze_block tail updated_env is_loop
 ;;
 
-let analyze parsed = analyze_block parsed Baselib._types_ false
+let verify_gotos gotolbl_pos setlabels =
+  List.iter
+    (fun elm ->
+      let lbl, pos = elm in
+      match Option.is_some (Env.find_opt lbl setlabels) with
+      | true -> ()
+      | _ -> raise (Error ("This Goto use an unset label", pos)))
+    gotolbl_pos
+;;
+
+let analyze parsed =
+  let analyse = analyze_block parsed Baselib._types_ false in
+  verify_gotos !gotos !jump_lbl_env;
+  analyse
+;;

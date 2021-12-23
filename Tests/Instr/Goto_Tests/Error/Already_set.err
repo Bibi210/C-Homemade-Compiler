@@ -1,0 +1,6 @@
+{
+goto undef;
+undef:
+undef:
+}
+// Error Output :  This Label (undef) is already set on line 3 col 14.

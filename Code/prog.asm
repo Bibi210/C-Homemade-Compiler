@@ -1,140 +1,169 @@
 .text
 .globl main
-_add_aux:
-  addi $sp, $sp, -8
-  sw $ra, 4($sp)
-  sw $fp, 8($sp)
-  move $fp, $sp
-  addi $sp, $sp, 0
-# Start of Instr : Call of _.puts(Str Label str_0 , )
-  la $v0, str_0
+_fibonacci:
+  addi $sp, $sp, -4
+# Start of Instr : (Implicit) Stack Space Reserved for Var (n) at -FP(0)
+# Start of Instr : If 0 condition : (Call of _.or(Call of _.eq(Variable n , 0 , ) , Call of _.eq(Variable n , 1 , ) , )) is true
+  addi $sp, $sp, -4
+  sw $ra, 0($sp)
+  addi $sp, $sp, -4
+  sw $ra, 0($sp)
+  lw $v0 0($fp)
   addi $sp, $sp, -4
   sw $v0, 0($sp)
-  jal _.puts
-  addi $sp, $sp, 4
-# Start of Instr : Call of _.puti(Variable a , )
-  lw $v0 16($fp)
+  li $v0, 0
   addi $sp, $sp, -4
   sw $v0, 0($sp)
-  jal _.puti
-  addi $sp, $sp, 4
-# Start of Instr : Call of _.puts(Str Label str_1 , )
-  la $v0, str_1
-  addi $sp, $sp, -4
-  sw $v0, 0($sp)
-  jal _.puts
-  addi $sp, $sp, 4
-# Start of Instr : Call of _.puts(Str Label str_2 , )
-  la $v0, str_2
-  addi $sp, $sp, -4
-  sw $v0, 0($sp)
-  jal _.puts
-  addi $sp, $sp, 4
-# Start of Instr : Call of _.puti(Variable b , )
-  lw $v0 12($fp)
-  addi $sp, $sp, -4
-  sw $v0, 0($sp)
-  jal _.puti
-  addi $sp, $sp, 4
-# Start of Instr : Call of _.puts(Str Label str_1 , )
-  la $v0, str_1
-  addi $sp, $sp, -4
-  sw $v0, 0($sp)
-  jal _.puts
-  addi $sp, $sp, 4
-# Start of Instr : Return Call of _.plus(Variable a , Variable b , )
-  lw $v0 16($fp)
-  addi $sp, $sp, -4
-  sw $v0, 0($sp)
-  lw $v0 12($fp)
-  addi $sp, $sp, -4
-  sw $v0, 0($sp)
-  jal _.plus
+  jal _.eq
   addi $sp, $sp, 8
-  move $sp, $fp
-  lw $ra 4($sp)
-  lw $fp 8($sp)
-  jr $ra
-_add:
-  addi $sp, $sp, -8
-  sw $ra, 4($sp)
-  sw $fp, 8($sp)
-  move $fp, $sp
-  addi $sp, $sp, 0
-# Start of Instr : Call of _.puts(Str Label str_3 , )
-  la $v0, str_3
-  addi $sp, $sp, -4
-  sw $v0, 0($sp)
-  jal _.puts
+  lw $ra 0($sp)
   addi $sp, $sp, 4
-# Start of Instr : Call of _.puti(Variable n , )
-  lw $v0 12($fp)
-  addi $sp, $sp, -4
-  sw $v0, 0($sp)
-  jal _.puti
-  addi $sp, $sp, 4
-# Start of Instr : Call of _.puts(Str Label str_1 , )
-  la $v0, str_1
-  addi $sp, $sp, -4
-  sw $v0, 0($sp)
-  jal _.puts
-  addi $sp, $sp, 4
-# Start of Instr : Return Call of _.plus(Call of add_aux(4 , Variable n , ) , Call of add_aux(1 , Variable n , ) , )
-  li $v0, 4
-  addi $sp, $sp, -4
-  sw $v0, 0($sp)
-  lw $v0 12($fp)
   addi $sp, $sp, -4
   sw $v0, 0($sp)
   addi $sp, $sp, -4
-  jal _add_aux
-  addi $sp, $sp, -8
+  sw $ra, 0($sp)
+  lw $v0 0($fp)
   addi $sp, $sp, -4
   sw $v0, 0($sp)
   li $v0, 1
   addi $sp, $sp, -4
   sw $v0, 0($sp)
-  lw $v0 12($fp)
+  jal _.eq
+  addi $sp, $sp, 8
+  lw $ra 0($sp)
+  addi $sp, $sp, 4
   addi $sp, $sp, -4
   sw $v0, 0($sp)
+  jal _.or
+  addi $sp, $sp, 8
+  lw $ra 0($sp)
+  addi $sp, $sp, 4
+  beq $v0, $zero, else0
+# Start of Instr : Return Variable n
+  lw $v0 0($fp)
+  jr $ra
+else0:
+# Start of Instr : Return Call of _.plus(Call of fibonacci(Call of _.sous(Variable n , 1 , ) , ) , Call of fibonacci(Call of _.sous(Variable n , 2 , ) , ) , )
   addi $sp, $sp, -4
-  jal _add_aux
+  sw $ra, 0($sp)
   addi $sp, $sp, -8
+  sw $ra, 0($sp)
+  sw $fp, 4($sp)
+  addi $s0, $sp, -4
+  addi $sp, $sp, -4
+  sw $ra, 0($sp)
+  lw $v0 0($fp)
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  li $v0, 1
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  jal _.sous
+  addi $sp, $sp, 8
+  lw $ra 0($sp)
+  addi $sp, $sp, 4
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  move $sp, $s0
+  move $fp, $sp
+  jal _fibonacci
+  addi $sp, $fp, 4
+  lw $ra 0($sp)
+  lw $fp 4($sp)
+  addi $sp, $sp, 8
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  addi $sp, $sp, -8
+  sw $ra, 0($sp)
+  sw $fp, 4($sp)
+  addi $s0, $sp, -4
+  addi $sp, $sp, -4
+  sw $ra, 0($sp)
+  lw $v0 0($fp)
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  li $v0, 2
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  jal _.sous
+  addi $sp, $sp, 8
+  lw $ra 0($sp)
+  addi $sp, $sp, 4
+  addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  move $sp, $s0
+  move $fp, $sp
+  jal _fibonacci
+  addi $sp, $fp, 4
+  lw $ra 0($sp)
+  lw $fp 4($sp)
+  addi $sp, $sp, 8
   addi $sp, $sp, -4
   sw $v0, 0($sp)
   jal _.plus
   addi $sp, $sp, 8
-  move $sp, $fp
-  lw $ra 4($sp)
-  lw $fp 8($sp)
+  lw $ra 0($sp)
+  addi $sp, $sp, 4
   jr $ra
-main:
+end_if0:
+  jr $ra
 _main:
-  addi $sp, $sp, -8
-  sw $ra, 4($sp)
-  sw $fp, 8($sp)
-  move $fp, $sp
   addi $sp, $sp, 0
-# Start of Instr : Call of _.puti(Call of add(10 , ) , )
-  li $v0, 10
+# Start of Instr : Call of _.puts(Str Label str_0 , )
+  addi $sp, $sp, -4
+  sw $ra, 0($sp)
+  la $v0, str_0
   addi $sp, $sp, -4
   sw $v0, 0($sp)
+  jal _.puts
+  addi $sp, $sp, 4
+  lw $ra 0($sp)
+  addi $sp, $sp, 4
+# Start of Instr : Call of _.puti(Call of fibonacci(25 , ) , )
   addi $sp, $sp, -4
-  jal _add
+  sw $ra, 0($sp)
+  addi $sp, $sp, -8
+  sw $ra, 0($sp)
+  sw $fp, 4($sp)
+  addi $s0, $sp, -4
+  li $v0, 25
   addi $sp, $sp, -4
+  sw $v0, 0($sp)
+  move $sp, $s0
+  move $fp, $sp
+  jal _fibonacci
+  addi $sp, $fp, 4
+  lw $ra 0($sp)
+  lw $fp 4($sp)
+  addi $sp, $sp, 8
   addi $sp, $sp, -4
   sw $v0, 0($sp)
   jal _.puti
   addi $sp, $sp, 4
+  lw $ra 0($sp)
+  addi $sp, $sp, 4
 # Start of Instr : Call of _.puts(Str Label str_1 , )
+  addi $sp, $sp, -4
+  sw $ra, 0($sp)
   la $v0, str_1
   addi $sp, $sp, -4
   sw $v0, 0($sp)
   jal _.puts
   addi $sp, $sp, 4
-  move $sp, $fp
-  lw $ra 4($sp)
-  lw $fp 8($sp)
+  lw $ra 0($sp)
+  addi $sp, $sp, 4
+  jr $ra
+main:
+  addi $sp, $sp, -8
+  sw $ra, 0($sp)
+  sw $fp, 4($sp)
+  addi $s0, $sp, -4
+  move $sp, $s0
+  move $fp, $sp
+  jal _main
+  addi $sp, $fp, 4
+  lw $ra 0($sp)
+  lw $fp 4($sp)
   addi $sp, $sp, 8
   jr $ra
 _.puts:
@@ -186,6 +215,4 @@ _.or:
 .data
 str_1: .asciiz "
 "
-str_0: .asciiz "A = "
-str_2: .asciiz "B = "
-str_3: .asciiz "add: n = "
+str_0: .asciiz "Fibo 25 = "

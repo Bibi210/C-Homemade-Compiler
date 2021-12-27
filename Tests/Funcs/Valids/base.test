@@ -1,11 +1,15 @@
-int test(int t){
+int test(int t,int c){
+puti(c);
+puts(" + ");
 puti(t);
+puts( " ="  );
+puti(c+t);
 puts("\n");
-return t;
+return t + c;
 }
 
 int main (){
-  puti(test(10));
+  puti(test(10,10) +  test(5,9));
   puts("\n");
 }
 

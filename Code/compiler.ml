@@ -12,6 +12,8 @@ type cinfo =
   ; top_loop_end : string
   }
 
+let return_code = [ Jr RA ]
+
 let fmt_val = function
   | Int number -> string_of_int number
   | Bool b -> string_of_bool b
@@ -94,20 +96,34 @@ let rec compile_expr e env =
   match e with
   | Value valeur -> compile_value valeur
   | Call (name, args) ->
-    if String.contains name '.'
-    then
-      List.flatten
-        (List.map
-           (fun a -> compile_expr a env @ [ Addi (SP, SP, -4); Sw (V0, Mem (SP, 0)) ])
-           args)
-      @ [ Jal name; Addi (SP, SP, 4 * List.length args) ]
-    else (
+    if not (String.contains name '.')
+    then (
       let name = "_" ^ name in
-      List.flatten
-        (List.map
-           (fun a -> compile_expr a env @ [ Addi (SP, SP, -4); Sw (V0, Mem (SP, 0)) ])
-           args)
-      @ [ Addi (SP, SP, -4); Jal name; Addi (SP, SP, -(4 * List.length args)) ])
+      [ Addi (SP, SP, -8); Sw (RA, Mem (SP, 0)); Sw (FP, Mem (SP, 4)); Addi (S0, SP, -4) ]
+      @ List.flatten
+          (List.map
+             (fun elm ->
+               compile_expr elm env @ [ Addi (SP, SP, -4); Sw (V0, Mem (SP, 0)) ])
+             args)
+      @ [ Move (SP, S0)
+        ; Move (FP, SP)
+        ; Jal name
+        ; Addi (SP, FP, 4)
+        ; Lw (Reg RA, Mem (SP, 0))
+        ; Lw (Reg FP, Mem (SP, 4))
+        ; Addi (SP, SP, 8)
+        ])
+    else
+      [ Addi (SP, SP, -4); Sw (RA, Mem (SP, 0)) ]
+      @ List.flatten
+          (List.map
+             (fun a -> compile_expr a env @ [ Addi (SP, SP, -4); Sw (V0, Mem (SP, 0)) ])
+             args)
+      @ [ Jal name
+        ; Addi (SP, SP, 4 * List.length args)
+        ; Lw (Reg RA, Mem (SP, 0))
+        ; Addi (SP, SP, 4)
+        ]
   | Var var -> [ Lw (Reg V0, Env.find var env) ]
   | Assign (var, expr) -> compile_expr expr env @ [ Sw (V0, Env.find var env) ]
 ;;
@@ -230,12 +246,7 @@ let rec compile_instr instr c_info =
     ; fpo = c_info.fpo + (compiled_block_info.fpo - c_info.fpo)
     }
   | Return expr ->
-    { c_info with
-      code =
-        c_info.code
-        @ compile_expr expr c_info.env
-        @ [ Move (SP, FP); Lw (Reg RA, Mem (SP, 4)); Lw (Reg FP, Mem (SP, 8)); Jr RA ]
-    }
+    { c_info with code = c_info.code @ compile_expr expr c_info.env @ return_code }
   | None -> c_info
   | Goto lbl -> { c_info with code = c_info.code @ [ J lbl ] }
   | Label lbl -> { c_info with code = c_info.code @ [ Jump_Lbl lbl ] }
@@ -274,38 +285,22 @@ let compile_def func count =
   match func with
   | Func (name, args, block) ->
     let name = "_" ^ name in
-    let dec_args, _ =
-      List.fold_left
-        (fun (acc, nb) elm -> Env.add elm (Mem (FP, 12 + (nb * 4))) acc, nb + 1)
-        (Env.empty, 0)
-        (List.rev args)
-    in
-    let compiled_block_info =
+    let args = List.map (fun elm -> Decl elm) args in
+    let compiled_args =
       compile_block
-        block
+        args
         { code = []
-        ; env = dec_args
+        ; env = Env.empty
         ; fpo = 0
         ; gen_label_counter = count
         ; top_loop_start = ""
         ; top_loop_end = ""
         }
     in
-    ( (if String.equal name "_main" then [ Jump_Lbl "main" ] else [])
-      @ [ Jump_Lbl name
-        ; Addi (SP, SP, -8)
-        ; Sw (RA, Mem (SP, 4))
-        ; Sw (FP, Mem (SP, 8))
-        ; Move (FP, SP)
-        ; Addi (SP, SP, -compiled_block_info.fpo)
-        ]
+    let compiled_block_info = compile_block block compiled_args in
+    ( [ Jump_Lbl name; Addi (SP, SP, -compiled_block_info.fpo) ]
       @ compiled_block_info.code
-      @ [ Move (SP, FP)
-        ; Lw (Reg RA, Mem (SP, 4))
-        ; Lw (Reg FP, Mem (SP, 8))
-        ; Addi (SP, SP, 8)
-        ; Jr RA
-        ]
+      @ return_code
     , compiled_block_info.gen_label_counter )
 ;;
 
@@ -320,7 +315,13 @@ let rec compile_prog prog counter =
 
 let compile ir simplify =
   let code, _ = compile_prog ir 0 in
-  { text = cleanup_asm (code @ Baselib.builtins)
+  { text =
+      cleanup_asm
+        (code
+        @ [ Jump_Lbl "main" ]
+        @ compile_expr (Call ("main", [])) Env.empty
+        @ [ Jr RA ]
+        @ Baselib.builtins)
   ; data = List.of_seq (Seq.map (fun (str, label) -> label, Asciiz str) simplify)
   }
 ;;

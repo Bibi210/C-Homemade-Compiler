@@ -7,6 +7,7 @@ type reg =
   | T0
   | FP
   | ZERO
+  | S0
 
 type label = string
 type comment = string
@@ -66,6 +67,7 @@ let fmt_reg = function
   | T0 -> "$t0"
   | FP -> "$fp"
   | ZERO -> "$zero"
+  | S0 -> "$s0"
 ;;
 
 let fmt_addr = function

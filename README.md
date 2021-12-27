@@ -9,7 +9,7 @@ Course available [here](https://pablo.rauzy.name/teaching/ic/) .
 
 - `cd C-Homemade-Compiler`
 
-- `rm -rf _build && dune exec Code/main.exe [Test Path] && spim `
+- `rm -rf _build && dune exec Code/main.exe [Test Path] && spim load "prog.asm"`
 
 - ```load "prog.asm"```
 
@@ -30,8 +30,8 @@ This projet is in 3 part Front-end,Middle-end and Back-end.
 
 
 ## Optimizations
-- String Duplicate 1 time register
-- Simplifier Deadcode Warning and cleanup
+- String Duplicate one time register
+- Simplifier Deadcode cleanup
 - Asm Cleanup of deadcode (which is not conditional)
 - Do not compile rest of block after break/continue or return
 
@@ -59,7 +59,7 @@ Objective is to finish, test and debug most of those.
 - [ ] Switch
   
 #### Defs :  
-- [ ] Functions
+- [ ] Functions (almost)
 - [ ] Globals
 
 #### Bonus :

@@ -3,9 +3,7 @@ type ident = string
 exception Error of string * Lexing.position
 
 let native_func = "_."
-(* 
- let defined_func = "__."
-*)
+let defined_func = "__."
 
 type prog_type =
   | Bool_t
@@ -133,7 +131,7 @@ module Syntax = struct
     | Func of
         { func_type : prog_type
         ; func_name : ident
-        ; args : ident list
+        ; args : (prog_type * ident) list
         ; block : block
         ; pos : Lexing.position
         }

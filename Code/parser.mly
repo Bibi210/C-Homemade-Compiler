@@ -20,10 +20,14 @@
 
 %token Lassign
 
+%token Leq Lor
 %token Lmult Ldiv Lmod
 %token Ladd Lsous 
 
 %right Lassign
+
+%left Lor
+%left Leq
 
 %left Ladd Lsous
 %left Lmult
@@ -31,18 +35,23 @@
 
 %start prog
 
-%type <Ast.Syntax.block> prog
+%type <Ast.Syntax.prog> prog
 
 %%
 
 prog:
-| b = block; Lend { b };
+| b = list(func_def); Lend { b };
 
 func_def:
-|func_type = func_types; func_name = Lident;Lopar;args = separated_list(Lvirgule, expr);Lcpar;body = block{
-
+|func_type = func_types; func_name = Lident;Lopar;args = separated_list(Lvirgule,pair (var_types,Lident) );Lcpar;body = block{
+  Func { func_type = func_type
+        ; func_name = func_name
+        ; args = args
+        ; block = body
+        ; pos = $startpos(func_name)}
 }
 ;
+
 block:
 |Lobra_curl; instr_ls = list(instr) ; Lcbra_curl{
   List.flatten instr_ls
@@ -93,20 +102,7 @@ instr:
 |Lgoto;lbl = Lident;Lsc{
   [Goto {lbl = lbl;pos = $startpos(lbl)}]
 }
-/* |Lswitch; expr ;Lobra_curl;pair(option(list(instr)),option(list(case)));Lcbra_curl{
-  []
-} 
-;
 
- case:
-|Lcase; cond = expr ; Lc ;opt_b =  option(list(instr)) {
-  let b = get_val opt_b [] in
-   cond,b
-}
-|Ldefault ; Lc ;opt_b =  option(list(instr)) {
-  let b = get_val opt_b [] in
-   Value {value = Bool true;pos = $startpos($1)},b
-}  */
 
 
 decl:
@@ -162,6 +158,8 @@ expr:
 |Lmult {"mult"}
 |Lmod {"mod"}
 |Ldiv {"div"}
+|Lor {"or"}
+|Leq {"eq"}
 
 %inline prog_val:
 |nb = Lint {Base_Value.Int nb}

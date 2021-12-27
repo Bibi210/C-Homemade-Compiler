@@ -37,7 +37,10 @@ let fmt_instr begin_or_end instr c_info =
     match instr with
     | Expr expr -> fmt_expr expr c_info.env
     | Decl var ->
-      Printf.sprintf "(Implicit) Stack Space Reserved for Var (%s) at -FP(%d)" var c_info.fpo
+      Printf.sprintf
+        "(Implicit) Stack Space Reserved for Var (%s) at -FP(%d)"
+        var
+        c_info.fpo
     | While (cond, _, do_mode) ->
       let com =
         "While "
@@ -91,11 +94,20 @@ let rec compile_expr e env =
   match e with
   | Value valeur -> compile_value valeur
   | Call (name, args) ->
-    List.flatten
-      (List.map
-         (fun a -> compile_expr a env @ [ Addi (SP, SP, -4); Sw (V0, Mem (SP, 0)) ])
-         args)
-    @ [ Jal name; Addi (SP, SP, 4 * List.length args) ]
+    if String.contains name '.'
+    then
+      List.flatten
+        (List.map
+           (fun a -> compile_expr a env @ [ Addi (SP, SP, -4); Sw (V0, Mem (SP, 0)) ])
+           args)
+      @ [ Jal name; Addi (SP, SP, 4 * List.length args) ]
+    else (
+      let name = "_" ^ name in
+      List.flatten
+        (List.map
+           (fun a -> compile_expr a env @ [ Addi (SP, SP, -4); Sw (V0, Mem (SP, 0)) ])
+           args)
+      @ [ Addi (SP, SP, -4); Jal name; Addi (SP, SP, -(4 * List.length args)) ])
   | Var var -> [ Lw (Reg V0, Env.find var env) ]
   | Assign (var, expr) -> compile_expr expr env @ [ Sw (V0, Env.find var env) ]
 ;;
@@ -242,35 +254,13 @@ and compile_block block c_info =
   compile_block_aux block c_info
 ;;
 
-let demo_before =
-  [ Jump_Lbl "main"
-  ; Addi (SP, SP, -8)
-  ; Sw (RA, Mem (SP, 4))
-  ; Sw (FP, Mem (SP, 8))
-  ; Move (FP, SP)
-  ]
-;;
-
-let demo_after =
-  [ Move (SP, FP); Lw (Reg RA, Mem (SP, 4)); Lw (Reg FP, Mem (SP, 8)); Jr RA ]
-;;
-
-let demo_cinfo =
-  { code = []
-  ; env = Env.empty
-  ; fpo = 0
-  ; gen_label_counter = 0
-  ; top_loop_start = ""
-  ; top_loop_end = ""
-  }
-;;
-
 let cleanup_asm text =
   let _, ls =
     List.fold_left
       (fun acc elem ->
         let is_kept, list = acc in
         match elem with
+        | Jr _ -> false, if is_kept then list @ [ elem ] else list
         | J _ -> false, if is_kept then list @ [ elem ] else list
         | Jump_Lbl _ -> true, list @ [ elem ]
         | _ -> is_kept, if is_kept then list @ [ elem ] else list)
@@ -280,15 +270,57 @@ let cleanup_asm text =
   ls
 ;;
 
+let compile_def func count =
+  match func with
+  | Func (name, args, block) ->
+    let name = "_" ^ name in
+    let dec_args, _ =
+      List.fold_left
+        (fun (acc, nb) elm -> Env.add elm (Mem (FP, 12 + (nb * 4))) acc, nb + 1)
+        (Env.empty, 0)
+        (List.rev args)
+    in
+    let compiled_block_info =
+      compile_block
+        block
+        { code = []
+        ; env = dec_args
+        ; fpo = 0
+        ; gen_label_counter = count
+        ; top_loop_start = ""
+        ; top_loop_end = ""
+        }
+    in
+    ( (if String.equal name "_main" then [ Jump_Lbl "main" ] else [])
+      @ [ Jump_Lbl name
+        ; Addi (SP, SP, -8)
+        ; Sw (RA, Mem (SP, 4))
+        ; Sw (FP, Mem (SP, 8))
+        ; Move (FP, SP)
+        ; Addi (SP, SP, -compiled_block_info.fpo)
+        ]
+      @ compiled_block_info.code
+      @ [ Move (SP, FP)
+        ; Lw (Reg RA, Mem (SP, 4))
+        ; Lw (Reg FP, Mem (SP, 8))
+        ; Addi (SP, SP, 8)
+        ; Jr RA
+        ]
+    , compiled_block_info.gen_label_counter )
+;;
+
+let rec compile_prog prog counter =
+  match prog with
+  | [] -> [], counter
+  | hd :: tail ->
+    let func, new_counter = compile_def hd counter in
+    let rest, prog_counter = compile_prog tail new_counter in
+    func @ rest, prog_counter
+;;
+
 let compile ir simplify =
-  let c_info = compile_block ir demo_cinfo in
-  { text =
-      cleanup_asm
-        (demo_before
-        @ [ Addi (SP, SP, -c_info.fpo) ]
-        @ c_info.code
-        @ demo_after
-        @ Baselib.builtins)
+  let code, _ = compile_prog ir 0 in
+  { text = cleanup_asm (code @ Baselib.builtins)
   ; data = List.of_seq (Seq.map (fun (str, label) -> label, Asciiz str) simplify)
   }
 ;;

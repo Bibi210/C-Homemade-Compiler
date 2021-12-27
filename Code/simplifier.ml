@@ -2,7 +2,6 @@ open Ast
 module Simplify_Env = Map.Make (String)
 
 let _counter = ref 0
-let _return_enconter = ref false
 let _clear_on = ref false
 
 type expr_env =
@@ -45,7 +44,7 @@ let rec simplify_expr code env =
 ;;
 
 let rec simplify_inst instr env =
-  let prev_ret = !_return_enconter || !_clear_on in
+  let prev_ret = !_clear_on in
   let tmp, env =
     match instr with
     | Base_IR.Expr x ->
@@ -77,7 +76,7 @@ let rec simplify_inst instr env =
       let simplify_block, new_env = simplify_block b env in
       Simplify_IR.NestedBlock simplify_block, new_env
     | Base_IR.Return expr ->
-      _return_enconter := true;
+      _clear_on := true;
       let expr_env = simplify_expr expr env in
       Simplify_IR.Return expr_env.expr, expr_env.env
     | Base_IR.None -> Simplify_IR.None, env
@@ -102,7 +101,23 @@ and simplify_block block env =
   tmp
 ;;
 
+let simplify_def func env =
+  match func with
+  | Base_IR.Func (name, args, block) ->
+    let block, new_env = simplify_block block env in
+    Simplify_IR.Func (name, args, block), new_env
+;;
+
+let rec simplify_prog prog env =
+  match prog with
+  | [] -> [], env
+  | hd :: tail ->
+    let func, new_env = simplify_def hd env in
+    let rest, prog_env = simplify_prog tail new_env in
+    func :: rest, prog_env
+;;
+
 let simplify code =
-  let code, labels = simplify_block code Simplify_Env.empty in
+  let code, labels = simplify_prog code Simplify_Env.empty in
   code, Simplify_Env.to_seq labels
 ;;

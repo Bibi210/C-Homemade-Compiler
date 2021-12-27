@@ -1,0 +1,21 @@
+int add_aux(int a, int b) {
+  puts("A = ");
+  puti(a);
+  puts("\n");
+  puts("B = ");
+  puti(b);
+  puts("\n");
+  return a + b;
+}
+
+int add(int n) {
+  puts("add: n = ");
+  puti(n);
+  puts("\n");
+  return (add_aux(4, n) + add_aux(1, n));
+}
+
+void main() {
+  puti(add(10));
+  puts("\n");
+}

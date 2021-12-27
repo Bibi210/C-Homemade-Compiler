@@ -41,6 +41,8 @@ rule token = parse
 | '%' {Lmod}
 | '/' {Ldiv}
 | '=' {Lassign}
+| "==" {Leq}
+| "||" {Lor}
 | "switch" {Lswitch}
 | "case" {Lcase}
 | ':' {Lc}

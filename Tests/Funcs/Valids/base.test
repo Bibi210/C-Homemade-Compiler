@@ -1,0 +1,12 @@
+int test(int t){
+puti(t);
+puts("\n");
+return t;
+}
+
+int main (){
+  puti(test(10));
+  puts("\n");
+}
+
+// Spim Output : 10\n10\n

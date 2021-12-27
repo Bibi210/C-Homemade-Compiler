@@ -1,0 +1,16 @@
+int fibonacci(int n)
+{
+  if (n == 0 || n == 1)
+    return n;
+  else{
+      int a = fibonacci(n-1) , b = fibonacci(n-2);
+      return a + b;
+  }
+}
+int main(){
+    puts("Fibo 16 = ");
+    puti(fibonacci(25));
+    puts("\n");
+}
+
+// Spim Output : 75025

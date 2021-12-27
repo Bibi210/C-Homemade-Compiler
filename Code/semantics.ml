@@ -34,7 +34,7 @@ let rec fmt_type = function
   | Void_t -> "Void"
   | Str_t -> "Str"
   | Func_t (return_type, _) -> fmt_type return_type
-  | Var_t (v_type, _) -> fmt_type v_type
+  | Var_t (v_type, _) -> "Var of type :" ^ fmt_type v_type
 ;;
 
 let emit_warning msg pos =
@@ -119,7 +119,9 @@ let rec analyze_expr expr env =
           (Printf.sprintf "The Variable: ( %s ) might be uninitialized " var.name)
           var.pos;
         { expr = Var var.name; base_type = var_type; env })
-    | Some _ -> failwith "Not Supposed To Happen")
+    | Some x ->
+      Printf.printf "%s\n" (fmt_type x);
+      failwith "Not Supposed To Happen")
   | Syntax.Assign assign ->
     (match Env.find_opt assign.var_name env with
     | None ->
@@ -228,8 +230,51 @@ let verify_gotos gotolbl_pos setlabels =
     gotolbl_pos
 ;;
 
+let analyze_def def env =
+  match def with
+  | Syntax.Func syntax_func ->
+    (match Env.find_opt syntax_func.func_name env with
+    | Some (Func_t _) ->
+      raise
+        (Error
+           ( Printf.sprintf "Func (%s) already defined" syntax_func.func_name
+           , syntax_func.pos ))
+    | _ ->
+      let env =
+        Env.add
+          syntax_func.func_name
+          (Func_t
+             ( syntax_func.func_type
+             , List.fold_left
+                 (fun acc (elem_type, _) -> acc @ [ elem_type ])
+                 []
+                 syntax_func.args ))
+          env
+      in
+      current_func_name := syntax_func.func_name;
+      gotos := [];
+      jump_lbl_env := Env.empty;
+      let func_var_env, args =
+        List.fold_left_map
+          (fun env (var_type, var) -> Env.add var (Var_t (var_type, true)) env, var)
+          env
+          syntax_func.args
+      in
+      let analyzed_body = analyze_block syntax_func.block func_var_env false in
+      verify_gotos !gotos !jump_lbl_env;
+      Func (syntax_func.func_name, args, analyzed_body), env)
+;;
+
+let rec analyze_prog prog env =
+  match prog with
+  | [] -> [], env
+  | hd :: tail ->
+    let func, new_env = analyze_def hd env in
+    let rest, prog_env = analyze_prog tail new_env in
+    func :: rest, prog_env
+;;
+
 let analyze parsed =
-  let analyse = analyze_block parsed Baselib._types_ false in
-  verify_gotos !gotos !jump_lbl_env;
-  analyse
+  let analysed, _ = analyze_prog parsed Baselib._types_ in
+  analysed
 ;;

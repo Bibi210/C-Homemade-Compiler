@@ -44,6 +44,8 @@ type instr =
   | Div of reg * reg * reg
   | Rem of reg * reg * reg
   | Coms of comment
+  | Or of reg * reg * reg
+  | Seq of reg * reg * reg
 
 type directive = Asciiz of string
 type decl = label * directive
@@ -99,6 +101,10 @@ let fmt_instr mips_instr =
     | Div (result, a, b) -> ps "  div %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
     | Rem (result, a, b) -> ps "  rem %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
     | Coms com -> if not (String.equal "None" com) then ps "# %s\n" com else ""
+    | Or (result, a, b) -> ps "  or %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
+    | Seq (result, a, b) -> ps "  seq %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
+
+     
   in
   match mips_instr with
   | Coms _ -> t

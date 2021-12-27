@@ -10,6 +10,8 @@ let def_t =
   ; "_.sous", Func_t (Int_t, [ Int_t; Int_t ])
   ; "_.div", Func_t (Int_t, [ Int_t; Int_t ])
   ; "_.mod", Func_t (Int_t, [ Int_t; Int_t ])
+  ; "_.or", Func_t (Bool_t, [ Bool_t; Bool_t ])
+  ; "_.eq", Func_t (Bool_t, [ Int_t; Int_t ])
   ]
 ;;
 
@@ -50,6 +52,16 @@ let builtins =
   ; Lw (Reg T0, Mem (SP, 0))
   ; Lw (Reg T1, Mem (SP, 4))
   ; Rem (V0, T1, T0)
+  ; Jr RA
+  ; Jump_Lbl "_.eq"
+  ; Lw (Reg T0, Mem (SP, 0))
+  ; Lw (Reg T1, Mem (SP, 4))
+  ; Seq (V0, T1, T0)
+  ; Jr RA
+  ; Jump_Lbl "_.or"
+  ; Lw (Reg T0, Mem (SP, 0))
+  ; Lw (Reg T1, Mem (SP, 4))
+  ; Or (V0, T1, T0)
   ; Jr RA
   ]
 ;;

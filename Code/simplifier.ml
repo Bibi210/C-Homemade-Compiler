@@ -40,7 +40,14 @@ let rec simplify_expr code env =
   | Base_IR.Var var -> { env; expr = Simplify_IR.Var var }
   | Base_IR.Assign (var, expr) ->
     let val_env = simplify_expr expr env in
+    let var =
+      match var with
+      | Base_IR.Lderef x -> Simplify_IR.Lderef x
+      | Base_IR.Lvar x -> Simplify_IR.Lvar x
+    in
     { expr = Simplify_IR.Assign (var, val_env.expr); env = val_env.env }
+  | Base_IR.Deref x -> { expr = Simplify_IR.Deref x; env }
+  | Base_IR.Addr x -> { expr = Simplify_IR.Addr x; env }
 ;;
 
 let rec simplify_inst instr env =

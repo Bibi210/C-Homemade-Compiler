@@ -12,6 +12,9 @@ type prog_type =
   | Void_t
   | Func_t of prog_type * prog_type list
   | Var_t of prog_type * bool
+  | Pointer_t of prog_type
+
+
 
 module type Parameters = sig
   type value
@@ -34,11 +37,17 @@ module Simplify_Value = struct
 end
 
 module IR (P : Parameters) = struct
+  type lvalues =
+    | Lderef of ident
+    | Lvar of ident
+
   type expr =
     | Value of P.value
     | Call of ident * expr list
     | Var of ident
-    | Assign of ident * expr
+    | Assign of lvalues * expr
+    | Deref of ident
+    | Addr of ident
 
   type instr =
     | Expr of expr
@@ -64,6 +73,10 @@ module Base_IR = IR (Base_Value)
 module Simplify_IR = IR (Simplify_Value)
 
 module Syntax = struct
+  type lvalues =
+    | Lderef of ident
+    | Lvar of ident
+
   type expr =
     | Value of
         { value : Base_Value.value
@@ -79,8 +92,16 @@ module Syntax = struct
         ; pos : Lexing.position
         }
     | Assign of
-        { var_name : ident
+        { var_name : lvalues
         ; expr : expr
+        ; pos : Lexing.position
+        }
+    | Deref of
+        { var_name : ident
+        ; pos : Lexing.position
+        }
+    | Addr of
+        { var_name : ident
         ; pos : Lexing.position
         }
 

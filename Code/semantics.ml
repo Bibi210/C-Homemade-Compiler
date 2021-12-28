@@ -35,6 +35,7 @@ let rec fmt_type = function
   | Str_t -> "Str"
   | Func_t (return_type, _) -> fmt_type return_type
   | Var_t (v_type, _) -> "Var of type :" ^ fmt_type v_type
+  | Pointer_t t -> " Pointer of : " ^ fmt_type t
 ;;
 
 let emit_warning msg pos =
@@ -83,7 +84,7 @@ let rec analyze_expr expr env =
           List.map2
             (fun a b ->
               let analyse_result = analyze_expr a env in
-              if analyse_result.base_type == b
+              if analyse_result.base_type = b
               then (
                 let _ = incr _counter in
                 analyse_result.expr)
@@ -123,25 +124,33 @@ let rec analyze_expr expr env =
       Printf.printf "%s\n" (fmt_type x);
       failwith "Not Supposed To Happen")
   | Syntax.Assign assign ->
-    (match Env.find_opt assign.var_name env with
+    let str_var =
+      match assign.var_name with
+      | Syntax.Lvar x -> x
+      | Syntax.Lderef x -> x
+    in
+    let no_type_var =
+      match assign.var_name with
+      | Syntax.Lvar x -> Lvar x
+      | Syntax.Lderef x -> Lderef x
+    in
+    (match Env.find_opt str_var env with
     | None ->
-      raise
-        (Error
-           (Printf.sprintf "The ( %s ) Variable dont exist" assign.var_name, assign.pos))
-    | Some x ->
+      raise (Error (Printf.sprintf "The ( %s ) Variable dont exist" str_var, assign.pos))
+    | Some (Var_t (v_type, _)) ->
       let expr_result = analyze_expr assign.expr env in
       let new_env =
-        Env.add
-          assign.var_name
-          (Var_t (expr_result.base_type, is_assigned expr_result.expr env))
-          expr_result.env
+        Env.add str_var (Var_t (v_type, is_assigned expr_result.expr env)) expr_result.env
       in
       let analyze_var =
-        analyze_expr (Syntax.Var { name = assign.var_name; pos = assign.pos }) new_env
+        match assign.var_name with
+        | Lvar x -> analyze_expr (Syntax.Var { name = x; pos = assign.pos }) new_env
+        | Lderef x ->
+          analyze_expr (Syntax.Deref { var_name = x; pos = assign.pos }) new_env
       in
-      if expr_result.base_type == analyze_var.base_type
+      if expr_result.base_type = analyze_var.base_type
       then
-        { expr = Assign (assign.var_name, expr_result.expr)
+        { expr = Assign (no_type_var, expr_result.expr)
         ; base_type = expr_result.base_type
         ; env = new_env
         }
@@ -150,10 +159,41 @@ let rec analyze_expr expr env =
           (Error
              ( Printf.sprintf
                  "Wrong type assign Variable ( %s ) Expected ( %s ) Given ( %s ) "
-                 assign.var_name
-                 (fmt_type x)
+                 str_var
+                 (fmt_type analyze_var.base_type)
                  (fmt_type expr_result.base_type)
-             , assign.pos )))
+             , assign.pos ))
+    | _ -> failwith "Wrong type assign")
+  | Syntax.Deref x ->
+    (match Env.find_opt x.var_name env with
+    | Some (Var_t (var, assigned)) ->
+      (match var with
+      | Pointer_t t ->
+        if assigned
+        then { expr = Deref x.var_name; base_type = t; env }
+        else (
+          emit_warning (Printf.sprintf "Deref of never initialized Pointer") x.pos;
+          { expr = Deref x.var_name; base_type = t; env })
+      | _ -> raise (Error ("Can't Deref cause its not a pointer", x.pos)))
+    | None ->
+      raise
+        (Error
+           ( Printf.sprintf "(%s) does not exist Dereference is not possible" x.var_name
+           , x.pos ))
+    | _ ->
+      raise
+        (Error (Printf.sprintf "Dereference of (%s) is not possible" x.var_name, x.pos)))
+  | Syntax.Addr var ->
+    (match Env.find_opt var.var_name env with
+    | Some (Pointer_t t) -> { expr = Addr var.var_name; base_type = Pointer_t t; env }
+    | Some (Var_t (t, _)) -> { expr = Addr var.var_name; base_type = Pointer_t t; env }
+    | _ ->
+      raise
+        (Error
+           ( Printf.sprintf
+               "(%s) does not exist Taking A Reference is not possible"
+               var.var_name
+           , var.pos )))
 ;;
 
 let rec analyze_instr intr env is_loop =
@@ -161,7 +201,22 @@ let rec analyze_instr intr env is_loop =
   | Syntax.Expr x ->
     let expr_type = analyze_expr x env in
     Expr expr_type.expr, expr_type.env
-  | Syntax.Return syntax_return -> Return (analyze_expr syntax_return.expr env).expr, env
+  | Syntax.Return syntax_return ->
+    let returned = analyze_expr syntax_return.expr env in
+    (match Env.find !current_func_name env with
+    | Func_t (ret_type, _) ->
+      if ret_type = returned.base_type
+      then Return returned.expr, env
+      else
+        raise
+          (Error
+             ( Printf.sprintf
+                 "Function (%s) as a wrong return type Expected (%s) Given (%s) "
+                 !current_func_name
+                 (fmt_type ret_type)
+                 (fmt_type returned.base_type)
+             , syntax_return.pos ))
+    | _ -> raise (Error ("Return Outside of a function not possible", syntax_return.pos)))
   | Syntax.Decl var ->
     ( Decl var.var_name
     , (match Env.find_opt var.var_name env with

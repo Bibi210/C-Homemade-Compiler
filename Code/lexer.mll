@@ -20,9 +20,10 @@
   |None -> Lident token
   |Some known_type -> known_type 
 }
-let alpha = ['a'-'z' 'A'-'Z']
-let num = ['0'-'9']
-let identifier = alpha (alpha | num | '_')*
+let alpha = ['a'-'z' 'A'-'Z' '_']
+let digit = [ '0'-'9']
+let num = '-'? digit+
+let identifier = alpha (alpha | num )*
 rule token = parse
 | eof             { Lend }
 | [ ' ' '\t' ]    { token lexbuf }
@@ -36,6 +37,7 @@ rule token = parse
 | "}" {Lcbra_curl}
 | ',' {Lvirgule}
 | '*' {Lmult}
+| '&' {Let}
 | '+' {Ladd}
 | '-' {Lsous}
 | '%' {Lmod}

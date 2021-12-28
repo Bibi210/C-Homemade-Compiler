@@ -12,13 +12,16 @@ type cinfo =
   ; top_loop_end : string
   }
 
-let return_code = [ Jr RA ]
-
 let fmt_val = function
   | Int number -> string_of_int number
   | Bool b -> string_of_bool b
   | Data str -> "Str Label " ^ str
   | Void -> "Void"
+;;
+
+let fmt_lval = function
+  | Lvar x -> "" ^ x
+  | Lderef x -> "Derf Pointer " ^ x
 ;;
 
 let rec fmt_expr e env =
@@ -31,7 +34,10 @@ let rec fmt_expr e env =
       args
     ^ ")"
   | Var var -> "Variable " ^ var
-  | Assign (name, expr) -> Printf.sprintf "Variable : %s = %s" name (fmt_expr expr env)
+  | Assign (name, expr) ->
+    Printf.sprintf "Variable : %s = %s" (fmt_lval name) (fmt_expr expr env)
+  | Deref x -> Printf.sprintf "Deref of Pointer (%s) " x
+  | Addr var -> Printf.sprintf "Taking ref of (%s) " var
 ;;
 
 let fmt_instr begin_or_end instr c_info =
@@ -125,7 +131,17 @@ let rec compile_expr e env =
         ; Addi (SP, SP, 4)
         ]
   | Var var -> [ Lw (Reg V0, Env.find var env) ]
-  | Assign (var, expr) -> compile_expr expr env @ [ Sw (V0, Env.find var env) ]
+  | Assign (var, expr) ->
+    compile_expr expr env
+    @
+    (match var with
+    | Lvar var -> [ Sw (V0, Env.find var env) ]
+    | Lderef pt_var -> [ Lw (Reg T0, Env.find pt_var env); Sw (V0, Mem (T0, 0)) ])
+  | Deref x -> [ Lw (Reg T0, Env.find x env); Lw (Reg V0, Mem (T0, 0)) ]
+  | Addr var ->
+    (match Env.find var env with
+    | Mem (r, offset) -> [ La (Reg V0, Mem (r, offset)) ]
+    | _ -> failwith "Never Happening i hope")
 ;;
 
 let rec compile_instr instr c_info =
@@ -246,7 +262,7 @@ let rec compile_instr instr c_info =
     ; fpo = c_info.fpo + (compiled_block_info.fpo - c_info.fpo)
     }
   | Return expr ->
-    { c_info with code = c_info.code @ compile_expr expr c_info.env @ return_code }
+    { c_info with code = c_info.code @ compile_expr expr c_info.env @ [ Jr RA ] }
   | None -> c_info
   | Goto lbl -> { c_info with code = c_info.code @ [ J lbl ] }
   | Label lbl -> { c_info with code = c_info.code @ [ Jump_Lbl lbl ] }
@@ -300,7 +316,7 @@ let compile_def func count =
     let compiled_block_info = compile_block block compiled_args in
     ( [ Jump_Lbl name; Addi (SP, SP, -compiled_block_info.fpo) ]
       @ compiled_block_info.code
-      @ return_code
+      @ [ Jr RA ]
     , compiled_block_info.gen_label_counter )
 ;;
 

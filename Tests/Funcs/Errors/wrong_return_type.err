@@ -1,0 +1,5 @@
+int main(){
+
+}
+
+// Error output Function (main) as a wrong return type Expected (Int) Given (Void)

@@ -1,0 +1,10 @@
+void test(int *a) { (*a) = 123; }
+void main() {
+  int c = 42;
+  test((&c));
+  puts("c = ");
+  puti(c);
+  puts("\n");
+}
+
+// Spim Output : 123

@@ -1,0 +1,16 @@
+int test(int t) {
+test:
+  if (t == 0) {
+    return 0;
+  } else {
+    puts("Goto\n");
+    t = t - 1;
+    goto test;
+  }
+}
+
+void main() {
+  test(3);
+}
+
+// Spim Output : 3 time Goto

@@ -2,15 +2,16 @@ int test(int t,int c){
 puti(c);
 puts(" + ");
 puti(t);
-puts( " ="  );
-puti(c+t);
+puts( " = "  );
+puti(c + t);
 puts("\n");
 return t + c;
 }
 
-int main (){
+void main (){
+  int main;
   puti(test(10,10) +  test(5,9));
   puts("\n");
 }
 
-// Spim Output : 10\n10\n
+// Spim Output : 34

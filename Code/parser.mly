@@ -1,6 +1,7 @@
 %{
   open Ast.Syntax
   open Ast
+  let return_encount = ref false 
   let get_val x default = 
   match x with
   |None -> default
@@ -29,6 +30,7 @@
 %left Lor
 %left Leq
 
+%token Let
 %left Ladd Lsous
 %left Lmult
 
@@ -47,8 +49,17 @@ func_def:
   Func { func_type = func_type
         ; func_name = func_name
         ; args = args
-        ; block = body
-        ; pos = $startpos(func_name)}
+        ; pos = $startpos(func_name)
+        ; block = if !return_encount then (return_encount := false; body) else 
+        
+        (body @  
+        [Return 
+          {expr =  
+              Value { value = Void; pos = $endpos(body)}
+
+          ;pos = $endpos(body)
+          }])
+        }
 }
 ;
 
@@ -67,6 +78,7 @@ instr:
 }
 |Lreturn ;opt_expr = option(expr);Lsc{
   let expr = get_val opt_expr (Value {value = Void;pos = $startpos(opt_expr)}) in
+  return_encount := true;
   [Return {expr = expr;pos = $startpos($1)}]
 }
 |Lwhile ; cond = expr; to_exec = instr{
@@ -109,7 +121,12 @@ decl:
 |var_type = var_types;arguments = separated_nonempty_list(Lvirgule, expr){
   List.map 
   (fun a -> match a with
-  |Assign syntax_assign -> [Decl{var_type = var_type;var_name = syntax_assign.var_name;pos = syntax_assign.pos};Expr (Assign syntax_assign) ] 
+  |Assign syntax_assign -> [Decl{var_type = var_type
+  ;var_name = 
+  (match syntax_assign.var_name with 
+  | Lvar x -> x 
+  | Lderef x -> x )
+  ;pos = syntax_assign.pos};Expr (Assign syntax_assign) ] 
   |Var syntax_var -> [Decl{var_type = var_type;var_name = syntax_var.name;pos = syntax_var.pos}]
   |_ -> raise (Error (Printf.sprintf "Not Valid Init" , $endpos(arguments)))
   )
@@ -123,7 +140,7 @@ expr:
   Value { value = n ; pos = $startpos(n) }
 }
 (*Parsing Functions*)
-| func_name = Lident;Lopar;argument = separated_nonempty_list(Lvirgule, expr);Lcpar
+| func_name = Lident;Lopar;argument = separated_list(Lvirgule, expr);Lcpar
   {Call{name = func_name ; args = argument ; pos = $startpos(func_name)} }
 (*Parsing Variables*)
 | var_name = Lident{
@@ -135,18 +152,33 @@ expr:
   ; args = [expr_a ; expr_b]
   ; pos = $startpos(op_name)}
 }
-|var_recieve = Lident;Lassign; expr = expr{ (*Provoque Grammaire ambigue a OP pk ?*)
+|var_recieve = var_ptr;Lassign; expr = expr{ (*Provoque Grammaire ambigue a OP pk ?*)
   Assign {var_name = var_recieve;expr = expr;pos = $startpos($2)}
+}
+|Lopar;Lmult;var = Lident;Lcpar{
+ Deref {var_name = var;pos = $startpos($2)}
+}
+|Lopar;Let;var = Lident;Lcpar{
+ Addr {var_name = var;pos = $startpos($2)}
 }
 (*Parenthèse Proccesing *)
 |Lopar ; expr = expr ; Lcpar {expr}
 
+var_ptr:
+|Lopar;Lmult;ptr = Lident;Lcpar{
+  Lderef ptr
+}
+|var = Lident{
+  Lvar var
+}
 
 
-%inline var_types:
+
+var_types:
 |Ldef_bool {Bool_t}
 |Ldef_string {Str_t}
 |Ldef_int {Int_t}
+|pt_type = var_types;Lmult {Pointer_t (pt_type)}
 
 %inline func_types:
 |v_type = var_types {v_type}

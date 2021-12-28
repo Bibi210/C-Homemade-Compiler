@@ -1,0 +1,17 @@
+int test(int t) {
+test:
+  if (t == 0) {
+    return;
+  } else {
+    puts("Goto\n");
+    t = t - 1;
+    goto test;
+  }
+}
+
+int main() {
+  goto test;
+  test(3);
+}
+
+// Error Output : This Goto use an unset label

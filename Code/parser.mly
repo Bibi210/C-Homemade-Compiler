@@ -1,38 +1,49 @@
 %{
   open Ast.Syntax
   open Ast
+  module Types_Map = Map.Make (String)
   let return_encount = ref false 
   let get_val x default = 
   match x with
   |None -> default
   |Some result -> result
 
+ let typestoken = ref Types_Map.empty
+  let get_type token pos = match Types_Map.find_opt token !typestoken with
+  |None -> raise (Error (Printf.sprintf "Undefined type" , pos))
+  |Some known_type -> known_type 
+
 %}
 %token <string>Lstring
 %token <bool> Lbool
 %token <int> Lint
 
-%token Ldef_int Ldef_bool Ldef_string Ldef_void
-%token <string> Lident
+%token Ldef_int Ldef_bool Ldef_string Ldef_void Ltypedef
+%token <string> Lident Ltype
 
-%token Lwhile Lfor Lif Lelse Ldo Lbreak Lcontinue Lreturn Lswitch Lc Lcase Ldefault Lgoto
+%token Lwhile Lfor Lif Lelse Ldo Lbreak Lcontinue Lreturn  Lc (* Lcase Ldefault  Lswitch *) Lgoto
 
 %token Lend Lvirgule Lopar Lcpar Lsc Lobra_curl Lcbra_curl
 
 %token Lassign
 
-%token Leq Lor
+%token Linf Lsup
+%token Let Lor
+%token Leq Lnot
 %token Lmult Ldiv Lmod
 %token Ladd Lsous 
 
 %right Lassign
 
 %left Lor
+%left Let
 %left Leq
+%left Linf Lsup
 
-%token Let
 %left Ladd Lsous
-%left Lmult
+%left Lmult Ldiv Lmod
+
+%nonassoc Lnot
 
 
 %start prog
@@ -42,9 +53,9 @@
 %%
 
 prog:
-| b = list(func_def); Lend { b };
+| b = list(def); Lend { b };
 
-func_def:
+def:
 |func_type = func_types; func_name = Lident;Lopar;args = separated_list(Lvirgule,pair (var_types,Lident) );Lcpar;body = block{
   Func { func_type = func_type
         ; func_name = func_name
@@ -60,6 +71,10 @@ func_def:
           ;pos = $endpos(body)
           }])
         }
+}
+|Ltypedef;old_type = var_types;new_type = Ltype;Lsc {
+  typestoken := Types_Map.add new_type (Custom_t(old_type)) !typestoken ;
+ Typedef {pos = $startpos($1); new_type = Custom_t (old_type) ; old_type = old_type}
 }
 ;
 
@@ -148,19 +163,31 @@ expr:
 }
 (*Parsing Basic Operators*)
 | expr_a = expr; op_name = op; expr_b = expr {
-  Call {name = native_func^op_name
+  Call {name = op_name
   ; args = [expr_a ; expr_b]
   ; pos = $startpos(op_name)}
 }
-|var_recieve = var_ptr;Lassign; expr = expr{ (*Provoque Grammaire ambigue a OP pk ?*)
+
+(*Parsing Solo Operators*)
+| op_name = solo_op; expr= expr {
+  Call {name = op_name
+  ; args = [expr]
+  ; pos = $startpos(op_name)}
+}
+
+
+|var_recieve = var_ptr;Lassign; expr = expr{
   Assign {var_name = var_recieve;expr = expr;pos = $startpos($2)}
 }
+
+
 |Lopar;Lmult;var = Lident;Lcpar{
  Deref {var_name = var;pos = $startpos($2)}
 }
 |Lopar;Let;var = Lident;Lcpar{
  Addr {var_name = var;pos = $startpos($2)}
 }
+
 (*Parenthèse Proccesing *)
 |Lopar ; expr = expr ; Lcpar {expr}
 
@@ -174,10 +201,12 @@ var_ptr:
 
 
 
+
 var_types:
 |Ldef_bool {Bool_t}
 |Ldef_string {Str_t}
 |Ldef_int {Int_t}
+|defined_type = Ltype {get_type defined_type $startpos(defined_type)}
 |pt_type = var_types;Lmult {Pointer_t (pt_type)}
 
 %inline func_types:
@@ -190,8 +219,20 @@ var_types:
 |Lmult {"mult"}
 |Lmod {"mod"}
 |Ldiv {"div"}
-|Lor {"or"}
+|Lor;Lor {"or"}
 |Leq {"eq"}
+|Let;Let {"and"}
+|Lsup {"sup"}
+|Lsup;Lassign {"sup_or_equal"}
+|Linf{"inf"}
+|Linf;Lassign {"inf_or_equal"}
+|Lnot;Lassign {"not_equal"}
+
+
+%inline solo_op:
+|Lnot {"not"}
+
+
 
 %inline prog_val:
 |nb = Lint {Base_Value.Int nb}

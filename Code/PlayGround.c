@@ -1,9 +1,8 @@
-void _test(int *a) { (*a) = -37; }
+void swap(bool *a, bool *b) {
+  bool temp = (*a);
+  (*a) = (*b);
+  (*b) = temp;
+}
 void main() {
-  int c = 42;
-  int *d = (&c);
-  _test((&c));
-  puts("c = ");
-  puti((*d));
-  puts("\n");
+  print_bool(true);
 }

@@ -1,0 +1,5 @@
+void test(){
+
+}
+
+// Error Output : Error on line 0 col 0: Main does not exist in this file .

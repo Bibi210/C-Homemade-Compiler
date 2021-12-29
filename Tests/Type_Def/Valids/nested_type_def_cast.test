@@ -1,0 +1,18 @@
+typedef int tmp_int_t ;
+typedef bool tmp_bool_t ;
+
+typedef tmp_int_t deriv_int_t;
+typedef tmp_bool_t deriv_bool_t;
+
+
+
+void main() {
+    deriv_int_t A = 10;
+    deriv_bool_t B = false;
+
+    A = B;
+    puts("A = ");
+    puti(A);
+    puts("\n");
+}
+

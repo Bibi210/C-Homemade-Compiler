@@ -1,0 +1,62 @@
+
+** Conflict (shift/reduce) in state 112.
+** Token involved: Lelse
+** This state is reached from prog after reading:
+
+Ldef_void Lident Lopar loption(separated_nonempty_list(Lvirgule,pair(var_types,Lident))) Lcpar Lobra_curl Lif expr Lif expr instr
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+list(def) Lend 
+def list(def) 
+Ldef_void Lident Lopar loption(separated_nonempty_list(Lvirgule,pair(var_types,Lident))) Lcpar block 
+                                                                                               Lobra_curl list(instr) Lcbra_curl 
+                                                                                                          instr list(instr) 
+                                                                                                          (?)
+
+** In state 112, looking ahead at Lelse, reducing production
+** option(pair(Lelse,instr)) ->
+** is permitted because of the following sub-derivation:
+
+Lif expr instr option(pair(Lelse,instr)) // lookahead token appears because option(pair(Lelse,instr)) can begin with Lelse
+         Lif expr instr option(pair(Lelse,instr)) // lookahead token is inherited
+                        . 
+
+** In state 112, looking ahead at Lelse, shifting is permitted
+** because of the following sub-derivation:
+
+Lif expr instr option(pair(Lelse,instr)) 
+         Lif expr instr option(pair(Lelse,instr)) 
+                        . Lelse instr 
+
+** Conflict (shift/reduce) in state 26.
+** Token involved: Lopar
+** This state is reached from prog after reading:
+
+Ldef_void Lident Lopar loption(separated_nonempty_list(Lvirgule,pair(var_types,Lident))) Lcpar Lobra_curl Lwhile Lident
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+list(def) Lend 
+def list(def) 
+Ldef_void Lident Lopar loption(separated_nonempty_list(Lvirgule,pair(var_types,Lident))) Lcpar block 
+                                                                                               Lobra_curl list(instr) Lcbra_curl 
+                                                                                                          instr list(instr) 
+                                                                                                          (?)
+
+** In state 26, looking ahead at Lopar, shifting is permitted
+** because of the following sub-derivation:
+
+Lwhile expr instr 
+       Lident . Lopar loption(separated_nonempty_list(Lvirgule,expr)) Lcpar 
+
+** In state 26, looking ahead at Lopar, reducing production
+** expr -> Lident
+** is permitted because of the following sub-derivation:
+
+Lwhile expr instr // lookahead token appears because instr can begin with Lopar
+       Lident . 

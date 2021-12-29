@@ -1,0 +1,7 @@
+void test(){
+}
+void test(){
+}
+void main(){}
+
+// Error Output : Error on line 3 col 5: Func (test) already defined.

@@ -1,0 +1,16 @@
+void swap(bool *a, bool *b) {
+  bool temp = (*a);
+  (*a) = (*b);
+  (*b) = temp;
+}
+void main() {
+  bool tr = true, fl = false;
+  swap((&tr), (&fl));
+
+  puts("Tr = ");
+  print_bool(tr);
+  puts("Fl = ");
+  print_bool(fl);
+}
+
+// Spim Output : Tr = False \n Fl = True \n

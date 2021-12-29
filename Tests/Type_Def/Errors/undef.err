@@ -1,0 +1,4 @@
+typedef undef newtype_t;
+void main() {
+
+}

@@ -1,0 +1,13 @@
+typedef int deriv_int_t;
+typedef bool deriv_bool_t;
+
+void main() {
+    deriv_int_t A = 10;
+    deriv_bool_t B = true;
+
+    A = B;
+    puts("A = ");
+    puti(A);
+    puts("\n");
+}
+// Spim Output 1

@@ -24,6 +24,7 @@ let alpha = ['a'-'z' 'A'-'Z' '_']
 let digit = [ '0'-'9']
 let num = '-'? digit+
 let identifier = alpha (alpha | num )*
+let types = identifier "_t"
 rule token = parse
 | eof             { Lend }
 | [ ' ' '\t' ]    { token lexbuf }
@@ -43,12 +44,16 @@ rule token = parse
 | '%' {Lmod}
 | '/' {Ldiv}
 | '=' {Lassign}
+| '!' {Lnot}
 | "==" {Leq}
-| "||" {Lor}
-| "switch" {Lswitch}
+| "|" {Lor}
+| "<" {Linf}
+| ">" {Lsup}
+(* | "switch" {Lswitch}
 | "case" {Lcase}
-| ':' {Lc}
+| ':' {Lc} 
 | "default" {Ldefault}
+*)
 | "break" {Lbreak}
 | "continue" {Lcontinue}
 | "return" {Lreturn}
@@ -58,10 +63,12 @@ rule token = parse
 | "if" {Lif}
 | "else" {Lelse}
 | "goto" {Lgoto}
+| "typedef" {Ltypedef}
 | "//" {line_comment lexbuf}
 | "/*" {multi_line_comment lexbuf}
 | '"'        { Lstring (String.of_seq (List.to_seq (string_read lexbuf))) }
 | num+ as n       { Lint (int_of_string n) }
+| types as read_type {Ltype read_type}
 | identifier+ as read_ident {is_type read_ident}
 | _ as c          { raise (Error c) }
 

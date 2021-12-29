@@ -1,0 +1,13 @@
+typedef int c_t;
+typedef c_t d_t;
+int main() {
+  d_t *test;
+  int b;
+  test = (&b);
+  (*test) = 10;
+  puts("test = ");
+  puti((*test));
+  puts("\n");
+  return 0;
+}
+// Spim Output 10

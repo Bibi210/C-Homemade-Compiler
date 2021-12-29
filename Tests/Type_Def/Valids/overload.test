@@ -1,0 +1,2 @@
+typedef int c_t;
+typedef bool c_t;

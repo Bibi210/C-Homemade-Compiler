@@ -1,23 +1,34 @@
-type reg = V0 | A0 | SP | RA | T1 | T0 | FP | ZERO | S0
+type reg =
+  (*Used Registers*)
+  | V0 (*Syscall ID*)
+  | A0 (* Syscall Parameter*)
+  | FP (*Frame Pointer*)
+  | SP (*Stack Pointer*)
+  | RA (*Return Adress*)
+  | T1
+  | T0
+  | ZERO (* Register always at 0 *)
+  | S0
 
 type label = string
-
 type comment = string
 
+(*Syscall ID*)
 module Syscall = struct
   let print_int = 1
-
   let print_str = 4
-
   let read_int = 5
-
   let read_str = 8
-
   let sbrk = 9
 end
 
-type addr = Lbl of label | Reg of reg | Mem of reg * int
+(*Valid Adresses*)
+type addr =
+  | Lbl of label
+  | Reg of reg
+  | Mem of reg * int
 
+(*Mips Instructions*)
 type instr =
   | Jump_Lbl of label
   | Li of addr * int
@@ -44,13 +55,16 @@ type instr =
   | Seq of reg * reg * reg
 
 type directive = Asciiz of string
-
 type decl = label * directive
 
-type asm = { text : instr list; data : decl list }
+type asm =
+  { text : instr list
+  ; data : decl list
+  }
 
 let ps = Printf.sprintf (* alias raccourci *)
 
+(*Reg to Assembly*)
 let fmt_reg = function
   | V0 -> "$v0"
   | A0 -> "$a0"
@@ -61,12 +75,16 @@ let fmt_reg = function
   | FP -> "$fp"
   | ZERO -> "$zero"
   | S0 -> "$s0"
+;;
 
+(*Addr to Assembly*)
 let fmt_addr = function
   | Lbl t -> t
   | Reg t -> fmt_reg t
   | Mem (r, offset) -> ps "%d(%s)" offset (fmt_reg r)
+;;
 
+(*Instr to Assembly*)
 let fmt_instr mips_instr =
   let t =
     match mips_instr with
@@ -80,36 +98,33 @@ let fmt_instr mips_instr =
     | Jal lbl -> ps "  jal %s" lbl
     | Sw (r, addr) -> ps "  sw %s, %s" (fmt_reg r) (fmt_addr addr)
     | Addi (result, resv, to_add) ->
-        ps "  addi %s, %s, %d" (fmt_reg result) (fmt_reg resv) to_add
+      ps "  addi %s, %s, %d" (fmt_reg result) (fmt_reg resv) to_add
     | Add (result, resv, to_add) ->
-        ps "  add %s, %s, %s" (fmt_reg result) (fmt_reg resv) (fmt_reg to_add)
-    | Sub (result, a, b) ->
-        ps "  sub %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
+      ps "  add %s, %s, %s" (fmt_reg result) (fmt_reg resv) (fmt_reg to_add)
+    | Sub (result, a, b) -> ps "  sub %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
     | Mul (result, resv, multiplier) ->
-        ps "  mul %s, %s, %s" (fmt_reg result) (fmt_reg resv)
-          (fmt_reg multiplier)
+      ps "  mul %s, %s, %s" (fmt_reg result) (fmt_reg resv) (fmt_reg multiplier)
     | Beq (left, right, label) ->
-        ps "  beq %s, %s, %s" (fmt_reg left) (fmt_reg right) label
+      ps "  beq %s, %s, %s" (fmt_reg left) (fmt_reg right) label
     | Bne (left, right, label) ->
-        ps "  bne %s, %s, %s," (fmt_reg left) (fmt_reg right) label
+      ps "  bne %s, %s, %s," (fmt_reg left) (fmt_reg right) label
     | J lbl -> ps "  j %s" lbl
-    | Div (result, a, b) ->
-        ps "  div %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
-    | Rem (result, a, b) ->
-        ps "  rem %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
+    | Div (result, a, b) -> ps "  div %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
+    | Rem (result, a, b) -> ps "  rem %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
     | Coms com -> if not (String.equal "None" com) then ps "# %s\n" com else ""
-    | Or (result, a, b) ->
-        ps "  or %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
-    | And (result, a, b) ->
-        ps "  and %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
-    | Slt (result, a, b) ->
-        ps "  slt %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
-    | Seq (result, a, b) ->
-        ps "  seq %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
+    | Or (result, a, b) -> ps "  or %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
+    | And (result, a, b) -> ps "  and %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
+    | Slt (result, a, b) -> ps "  slt %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
+    | Seq (result, a, b) -> ps "  seq %s, %s, %s" (fmt_reg result) (fmt_reg a) (fmt_reg b)
   in
-  match mips_instr with Coms _ -> t | _ -> t ^ "\n"
+  match mips_instr with
+  | Coms _ -> t
+  | _ -> t ^ "\n"
+;;
 
-let fmt_dir = function Asciiz s -> ps ".asciiz \"%s\"" s
+let fmt_dir = function
+  | Asciiz s -> ps ".asciiz \"%s\"" s
+;;
 
 let emit oc asm =
   Printf.fprintf oc ".text\n.globl main\n";
@@ -117,3 +132,4 @@ let emit oc asm =
   Printf.fprintf oc "\n.data\n";
   List.iter (fun (l, d) -> Printf.fprintf oc "%s: %s\n" l (fmt_dir d)) asm.data;
   close_out oc
+;;

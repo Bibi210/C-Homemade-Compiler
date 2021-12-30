@@ -2,37 +2,43 @@
   open Ast.Syntax
   open Ast
   module Types_Map = Map.Make (String)
+  (*Ocaml Helpers *)
+  
   let return_encount = ref false 
   let get_val x default = 
   match x with
   |None -> default
   |Some result -> result
 
- let typestoken = ref Types_Map.empty
+  (*Custom Types Environment*)
+  let typestoken = ref Types_Map.empty
   let get_type token pos = match Types_Map.find_opt token !typestoken with
   |None -> raise (Error (Printf.sprintf "Undefined type" , pos))
   |Some known_type -> known_type 
 
+  (*Ocaml Helpers *)
 %}
 %token <string>Lstring
 %token <bool> Lbool
 %token <int> Lint
 
+(*Primitive Types Tokens *)
 %token Ldef_int Ldef_bool Ldef_string Ldef_void Ltypedef
 %token <string> Lident Ltype
 
-%token Lwhile Lfor Lif Lelse Ldo Lbreak Lcontinue Lreturn  Lc (* Lcase Ldefault  Lswitch *) Lgoto
+(*Instructions Tokens *)
+%token Lassign Lwhile Lfor Lif Lelse Ldo Lbreak Lcontinue Lreturn  Lc (* Lcase Ldefault  Lswitch *) Lgoto
+
 
 %token Lend Lvirgule Lopar Lcpar Lsc Lobra_curl Lcbra_curl
 
-%token Lassign
+%token Linf Lsup (*Compare Tokens*)
+%token Let Lor Lnot (*Logical Operation Tokens*)
+%token Leq 
+%token Lmult Ldiv Lmod Ladd Lsous (*Arithmetic Operation Tokens*)
 
-%token Linf Lsup
-%token Let Lor
-%token Leq Lnot
-%token Lmult Ldiv Lmod
-%token Ladd Lsous 
 
+(*Priority Rules*)
 %right Lassign
 
 %left Lor
@@ -44,6 +50,7 @@
 %left Lmult Ldiv Lmod
 
 %nonassoc Lnot
+(*Priority Rules*)
 
 
 %start prog
@@ -55,6 +62,7 @@
 prog:
 | b = list(def); Lend { b };
 
+(*Definitions*)
 def:
 |func_type = func_types; func_name = Lident;Lopar;args = separated_list(Lvirgule,pair (var_types,Lident) );Lcpar;body = block{
   Func { func_type = func_type
@@ -77,12 +85,15 @@ def:
  Typedef {pos = $startpos($1); new_type = Custom_t (old_type) ; old_type = old_type}
 }
 ;
+(*Definitions*)
 
+(*Block Parsing*)
 block:
 |Lobra_curl; instr_ls = list(instr) ; Lcbra_curl{
   List.flatten instr_ls
 };
 
+(*Instructions*)
 instr:
 | Lsc {[]}
 | expr = expr;Lsc;{
@@ -129,9 +140,11 @@ instr:
 |Lgoto;lbl = Lident;Lsc{
   [Goto {lbl = lbl;pos = $startpos(lbl)}]
 }
+(*Instructions*)
 
 
 
+(*Annoying Declarations + Assign Parsing *)
 decl:
 |var_type = var_types;arguments = separated_nonempty_list(Lvirgule, expr){
   List.map 
@@ -146,8 +159,9 @@ decl:
   |_ -> raise (Error (Printf.sprintf "Not Valid Init" , $endpos(arguments)))
   )
   arguments 
-}
-;
+};
+(*Annoying Declarations + Assign Parsing *)
+
 
 expr:
 (*Parsing Values*)
@@ -168,22 +182,22 @@ expr:
   ; pos = $startpos(op_name)}
 }
 
-(*Parsing Solo Operators*)
+(*Parsing Solo Operators exemple:(not)*)
 | op_name = solo_op; expr= expr {
   Call {name = op_name
   ; args = [expr]
   ; pos = $startpos(op_name)}
 }
 
-
 |var_recieve = var_ptr;Lassign; expr = expr{
   Assign {var_name = var_recieve;expr = expr;pos = $startpos($2)}
 }
 
-
+(*Pointer Dereference*)
 |Lopar;Lmult;var = Lident;Lcpar{
  Deref {var_name = var;pos = $startpos($2)}
 }
+(*Variable Reference*)
 |Lopar;Let;var = Lident;Lcpar{
  Addr {var_name = var;pos = $startpos($2)}
 }
@@ -191,6 +205,7 @@ expr:
 (*Parenthèse Proccesing *)
 |Lopar ; expr = expr ; Lcpar {expr}
 
+(*Lvalues Parsing*)
 var_ptr:
 |Lopar;Lmult;ptr = Lident;Lcpar{
   Lderef ptr
@@ -200,8 +215,7 @@ var_ptr:
 }
 
 
-
-
+(*Types Pointer and Custom Type Parsing*)
 var_types:
 |Ldef_bool {Bool_t}
 |Ldef_string {Str_t}
@@ -209,10 +223,12 @@ var_types:
 |defined_type = Ltype {get_type defined_type $startpos(defined_type)}
 |pt_type = var_types;Lmult {Pointer_t (pt_type)}
 
+(*Only there cause a variable can't be void*)
 %inline func_types:
 |v_type = var_types {v_type}
 |Ldef_void {Void_t}
 
+(*Operators to avoid redundant code*)
 %inline op:
 |Ladd {"plus"}
 |Lsous {"sous"}
@@ -229,11 +245,12 @@ var_types:
 |Lnot;Lassign {"not_equal"}
 
 
+(*Operators with only one parameter *)
 %inline solo_op:
 |Lnot {"not"}
 
 
-
+(*Parsing Values*)
 %inline prog_val:
 |nb = Lint {Base_Value.Int nb}
 |bo = Lbool {Base_Value.Bool bo}

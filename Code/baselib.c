@@ -34,4 +34,4 @@ void print_bool(bool a) {
   else
     println("false");
 }
-// Created cause i suck at assembly
+// Created cause Im bad at assembly

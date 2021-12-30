@@ -1,6 +1,6 @@
 # Homemade C Compiler
 
-This C Subset Compiler is made using [Ocaml](https://ocaml.org/).\
+This C (Tiny Subset) Compiler is made using [Ocaml](https://ocaml.org/).\
 [Menhir](http://gallium.inria.fr/~fpottier/menhir/manual.pdf),[Ocamllex](https://ocaml.org/manual/lexyacc.html) are used for front end.\
 It's my final projet of our compilation class at Paris 8 University.\
 Course available [here](https://pablo.rauzy.name/teaching/ic/) .
@@ -10,7 +10,7 @@ Course available [here](https://pablo.rauzy.name/teaching/ic/) .
 
 - `cd C-Homemade-Compiler`
 
-- `rm -rf _build && dune exec Code/main.exe [Test Path] && spim load "prog.asm"`
+- `dune exec Code/main.exe [Test Path] && spim load "prog.asm"`
 
 
 ## Explications
@@ -43,7 +43,7 @@ Objective is to finish, test and debug most of those. (If i can)
 - [X] Call
 - [X] Var
 - [X] Assignment
-- [X] Pointers
+- [X] Pointers 
   
 #### Instructions :
 - [X] Declarations

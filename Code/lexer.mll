@@ -1,11 +1,11 @@
 {
-  (*open Lexing*)
   open Parser
   module Types_Map = Map.Make (String)
   exception Error of char
   exception StrEndError
-  exception ComEndError
+  exception ComEndError (*Never ending Com*)
   
+  (*Primitive Types*)
   let typestoken = 
   Types_Map.of_seq(
   List.to_seq
@@ -15,7 +15,7 @@
   ; "void",Ldef_void
   ]
   )
-
+  (*Verify if its a base type or not *)
   let is_type token = match Types_Map.find_opt token typestoken with
   |None -> Lident token
   |Some known_type -> known_type 
@@ -24,7 +24,7 @@ let alpha = ['a'-'z' 'A'-'Z' '_']
 let digit = [ '0'-'9']
 let num = '-'? digit+
 let identifier = alpha (alpha | num )*
-let types = identifier "_t"
+let types = identifier "_t" (*For TypeDefs*)
 rule token = parse
 | eof             { Lend }
 | [ ' ' '\t' ]    { token lexbuf }
@@ -49,7 +49,8 @@ rule token = parse
 | "|" {Lor}
 | "<" {Linf}
 | ">" {Lsup}
-(* | "switch" {Lswitch}
+(* One Day Maybe
+| "switch" {Lswitch}
 | "case" {Lcase}
 | ':' {Lc} 
 | "default" {Ldefault}
@@ -72,6 +73,7 @@ rule token = parse
 | identifier+ as read_ident {is_type read_ident}
 | _ as c          { raise (Error c) }
 
+(*For String Parsing*)
 and string_read = parse
 | eof { raise (StrEndError) }
 | '"' { [] }

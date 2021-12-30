@@ -10,7 +10,7 @@ Course available [here](https://pablo.rauzy.name/teaching/ic/) .
 
 - `cd C-Homemade-Compiler`
 
-- `dune exec Code/main.exe [Test Path] && spim load "prog.asm"`
+- `dune exec Code/main.exe --release [Test Path] && spim load "prog.asm"`
 
 
 ## Explications

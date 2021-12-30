@@ -1,37 +1,73 @@
-## Welcome to GitHub Pages
+# Homemade C Compiler
 
-You can use the [editor on GitHub](https://github.com/Bibi210/C-Homemade-Compiler/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+This C (Tiny Subset) Compiler is made using [Ocaml](https://ocaml.org/).\
+[Menhir](http://gallium.inria.fr/~fpottier/menhir/manual.pdf),[Ocamllex](https://ocaml.org/manual/lexyacc.html) are used for front end.\
+It's my final projet of our compilation class at Paris 8 University.\
+Course available [here](https://pablo.rauzy.name/teaching/ic/) .
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+## Install
+- `git clone https://github.com/Bibi210/C-Homemade-Compiler.git`
 
-### Markdown
+- `cd C-Homemade-Compiler`
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+- `dune exec Code/main.exe --release [Test Path] && spim load "prog.asm"`
 
-```markdown
-Syntax highlighted code block
 
-# Header 1
-## Header 2
-### Header 3
+## Explications
+This projet is in 3 part Front-end,Middle-end and Back-end.
+#### Front-end (Menhir , Ocamllex) :
+- Lexer (We take the source code and get token out of it)
+- Parser (Generate our pre code)
 
-- Bulleted
-- List
+#### Mid-end :
+- Sementics (Most of it is type verifications)
+- Simplifier (Dead Code Cleanup and String Simplification)
+  
+#### Back-end :
+- Compiler (Mips Assembly Generation)
 
-1. Numbered
-2. List
+## Tests
+All tests are available in the /Tests files.\
+I tried my best that commits with (... Gestion) have Valids and Verified tests.\
+In old commits the README might be inaccurate
 
-**Bold** and _Italic_ and `Code` text
+## Optimizations
+- String Duplicate one time register
+- Simplifier Deadcode cleanup
+- Asm Cleanup of deadcode 
 
-[Link](url) and ![Image](src)
-```
+## Todo List
+Objective is to finish, test and debug most of those. (If i can)
+#### Expr :
+- [X] Values
+- [X] Call
+- [X] Var
+- [X] Assignment
+- [X] Pointers 
+  
+#### Instructions :
+- [X] Declarations
+- [X] Block
+- [X] Do_While
+- [X] While
+- [X] For
+- [X] If
+- [X] Return
+- [X] Break
+- [X] Continue
+- [X] Goto
+- [ ] Switch
+  
+#### Defs :  
+- [X] Functions
+- [ ] Globals
 
-For more details see [Basic writing and formatting syntax](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
+#### Bonus :
+- [X] Automatic Assembly comments
+- [ ] Arrays
+- [ ] Struct
+- [X] Typedef (Works Well if we avoid mixing with pointers)
 
-### Jekyll Themes
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/Bibi210/C-Homemade-Compiler/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+Dibassi Brahima\
+L3 Informatique
